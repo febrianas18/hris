@@ -1,0 +1,29 @@
+Data Contoh HRIS PT Karsa Lintas Nusantara
+Bootcamp AI Web Programming · Capstone Project
+
+Isi file
+"1. Sheet ""Akun Uji"": daftar akun untuk login. Semua akun memakai kata sandi latihan yang sama: Latihan#2026"
+"2. Sheet bernama tabel (divisi, profiles, hari_libur, kuota_cuti, pengajuan_cuti, absensi, slip_gaji, audit_log) mengikuti nama tabel dan kolom di ERD_HRIS.pdf."
+"3. Kolom berjudul biru muda dengan akhiran ""(bantu)"" hanya untuk memudahkan membaca. Kolom ini tidak ada di database, jangan diimpor."
+"4. Baris berwarna kuning adalah kasus batas yang berguna untuk pengujian (lihat kolom ""kasus_uji (bantu)"")."
+
+Cara memakai
+"1. Buat akun di Supabase Auth untuk setiap baris di sheet ""Akun Uji"". Setiap akun mendapat id baru dari auth.users."
+"2. Ganti kolom id di sheet profiles dengan id dari auth.users yang emailnya sama. Kolom lain yang merujuk karyawan (karyawan_id, manajer_id, disetujui_atasan_oleh, dan seterusnya) ikut diganti. Cara termudah: impor dengan mencocokkan email atau nik_karyawan, atau minta agen AI membuat skrip seed yang mencari id berdasarkan email."
+"3. Urutan impor: divisi (manajer_id dikosongkan dulu), profiles, isi manajer_id divisi, hari_libur, kuota_cuti, pengajuan_cuti, absensi, slip_gaji. audit_log boleh tidak diimpor karena akan terisi sendiri saat aplikasi dipakai."
+"4. Semua waktu memakai zona WIB (+07:00). Tanggal ""hari ini"" pada data contoh adalah Kamis, 15 Oktober 2026. Bila menguji di tanggal lain, geser semua tanggal dengan selisih yang sama."
+"5. Nilai terpakai_hari di kuota_cuti sudah sama dengan jumlah hari cuti tahunan berstatus diajukan, disetujui_atasan, dan disetujui pada tahun 2026."
+
+Ringkasan data
+"Divisi: 4 · Karyawan: 16 (1 nonaktif) · Hari libur: 17 · Pengajuan: 37 · Absensi: 278 baris (21 September sampai 15 Oktober 2026) · Slip gaji: 39 (Agustus dan September terbit, Oktober draf) · Audit log: 23"
+
+Kasus batas penting
+"Siti Nurhaliza: sisa kuota 1 hari. Uji pengajuan 2 hari (harus ditolak) dan 1 hari (harus diterima), juga dua pengajuan bersamaan."
+"Putri Lestari: sisa kuota 0 dan punya pengajuan 9 sampai 11 November berstatus disetujui_atasan. Bila HRD menolak, sisa kuota kembali menjadi 3."
+"Rizky Ramadhan: masuk 2 November 2025, baru berhak cuti tahunan mulai 2 November 2026; jatah 2 hari."
+"Nadia Safitri: masuk Maret 2026, jatah cuti 0."
+Bambang Hartono: akun nonaktif sejak 1 Oktober 2026. Login harus ditolak.
+Dimas Pratama (HRD): pengajuan 22 sampai 23 Oktober dihitung 1 hari karena 23 Oktober libur perusahaan; harus diputuskan HRD lain (Rina).
+Bayu Setiawan (Atasan): pengajuannya langsung ke HRD tanpa tahap Atasan.
+"Absensi 12 Oktober: Andi check-in tepat 08.15.00 (hadir), Siti 08.15.01 (terlambat). Wulan lupa check-out 8 Oktober. Absensi Agus 29 September hasil koreksi HRD."
+"Hari ini (15 Oktober): Putri dan Bayu belum check-in, sehingga tombol check-in masih aktif untuk mereka. Larasati sedang mengajukan sakit 14 sampai 15 Oktober."
