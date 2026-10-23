@@ -246,25 +246,24 @@ export async function POST(req: NextRequest) {
     }
 
     // 7. Penentuan Alur Persetujuan (BR-09)
-    // Pemohon adalah Atasan atau HRD -> Tahap 1 dilewati, perlu_atasan = false
-    let perluAtasan = true;
-    if (profile.peran === 'atasan' || profile.peran === 'hrd') {
-      perluAtasan = false;
-    } else {
-      // Jika pemohon karyawan biasa, cek apakah divisinya memiliki Atasan aktif
-      if (profile.divisi_id) {
-        const { count: atasanCount } = await supabase
-          .from('profiles')
-          .select('id', { count: 'exact', head: true })
-          .eq('divisi_id', profile.divisi_id)
-          .eq('peran', 'atasan')
-          .eq('aktif', true);
+    // Pemohon adalah Atasan atau HRD -> Tahap 1 dilewati, perlu_atasan = false.
+    // Karyawan biasa -> Tahap 1 hanya jika divisinya punya manajer aktif berperan Atasan.
+    let perluAtasan = false;
+    if (profile.peran === 'karyawan' && profile.divisi_id) {
+      const { data: divisi } = await supabase
+        .from('divisi')
+        .select('manajer_id')
+        .eq('id', profile.divisi_id)
+        .maybeSingle();
 
-        if (!atasanCount || atasanCount === 0) {
-          perluAtasan = false; // Divisi tidak punya Atasan -> langsung ke HRD (BR-09)
-        }
-      } else {
-        perluAtasan = false;
+      if (divisi?.manajer_id) {
+        const { data: manajer } = await supabase
+          .from('profiles')
+          .select('peran, aktif')
+          .eq('id', divisi.manajer_id)
+          .maybeSingle();
+
+        perluAtasan = manajer?.peran === 'atasan' && manajer?.aktif === true;
       }
     }
 

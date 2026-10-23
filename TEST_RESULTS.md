@@ -4,6 +4,8 @@
 **Tanggal Verifikasi**: 20 Oktober 2026  
 **Status Keseluruhan**: **LULUS 100% (ALL TESTS PASSED)**
 
+> **Catatan P0/P1 (23 Oktober 2026)**: Patch keamanan P0 sudah diterapkan ke database dan API: RPC bisnis tidak lagi dapat dipanggil `anon`, setiap RPC memverifikasi `auth.uid()`, check-in/check-out memakai RPC server-side, dan RLS `absensi`/`pengajuan_cuti`/`profiles`/`audit_log` diperketat. Patch P1 menambahkan modul BR-01 (Data Karyawan), validasi database BR-04/05/06/07/08/09/10, audit trigger BR-12, dan penguatan `search_path`. Rincian P1 ada di `docs/P1_HARDENING.md` dan bagian 4 di bawah.
+
 ---
 
 ## 1. Verifikasi Checklist Kriteria Selesai (Bab 13 PRD)
@@ -188,6 +190,53 @@ Semua skrip pengujian otomatis yang disertakan dalam repositori telah dijalankan
 5. `scratch/test-payroll-api.mjs`: Pengujian endpoint API `/api/payroll`, `/api/payroll/draft`, `/api/payroll/publish`, dan `/api/payroll/previous`.
 6. `scratch/test-tahap6.mjs`: Pengujian aturan atasan divisi (BR-01), master hari libur, jatah kuota cuti (BR-04), dan immutabilitas audit log.
 7. `npm run build`: Kompilasi build produksi Next.js App Router dengan Turbopack berjalan sukses **0 error**.
+
+---
+
+## 4. Verifikasi P1 Business Rules & Hardening (23 Oktober 2026)
+
+**Status**: **LULUS 100%**
+**Migration live**: `20261023_p1_business_rules.sql` (project `hehtaiitqlqepvtxhrnx`)
+
+### 4.1 Cakupan yang diverifikasi
+
+| Area | Verifikasi |
+|:---|:---|
+| BR-01 modul karyawan | HRD dapat membuat akun login + profil + kuota secara atomik melalui `fn_admin_create_karyawan`; dapat mengubah data, peran, divisi, dan status aktif. Atasan hanya baca; Karyawan ditolak. |
+| BR-01 proteksi peran | HRD tidak dapat mengubah peran/menonaktifkan akun sendiri; sistem menolak menghapus HRD aktif terakhir; email profil dijaga sinkron dengan `auth.users`. |
+| BR-01 manajer divisi | Hanya Atasan/HRD aktif yang dapat menjadi manajer; satu divisi satu manajer; satu Atasan satu divisi; penggantian manajer dilakukan atomik dan Atasan lama diturunkan menjadi Karyawan. |
+| BR-04/05/06/07/08 | `fn_submit_pengajuan` menghitung ulang hari kerja dan `perlu_atasan` di database, memeriksa H-3/H-1/H+3, masa kerja, overlap, kuota, izin maks. 2 hari, dan lampiran sakit. Nilai dari klien diabaikan. |
+| BR-09 | Tahap 1 hanya boleh oleh `divisi.manajer_id` pemohon; HRD tidak bisa melompati Tahap 1; HRD hanya boleh menolak setelah Tahap 1 selesai. |
+| BR-10 | HRD hanya boleh membatalkan pengajuan yang sudah disetujui dan sebelum tanggal mulai; pengajuan pending tidak bisa dibatalkan HRD; pemohon tidak bisa membatalkan pengajuan yang sudah disetujui akhir. |
+| BR-12 audit | Trigger audit otomatis pada `profiles`, `kuota_cuti`, `absensi`, `divisi`, `hari_libur`, `slip_gaji`; tidak ada lagi audit manual ganda dari route untuk tabel tersebut. |
+| search_path | Seluruh helper/trigger function P1 memakai `SECURITY DEFINER` + `SET search_path = public, pg_temp`. |
+
+### 4.2 Hasil skrip uji
+
+1. `scratch/test-p1-db.mjs` — **21/21 PASS**:
+   - pembuatan akun/profil/kuota, login akun baru, penolakan RPC admin oleh Karyawan;
+   - update karyawan, proteksi peran sendiri, aturan satu Atasan satu divisi;
+   - perhitungan hari kerja/`perlu_atasan` di database, penolakan Atasan divisi lain;
+   - penolakan HRD melompati/menolak sebelum Tahap 1, persetujuan Tahap 1 yang benar;
+   - penolakan HRD membatalkan pengajuan pending, penolakan setelah Tahap 1, refund kuota;
+   - persetujuan Tahap 2, penolakan pembatalan oleh pemohon, pembatalan oleh HRD, refund kuota;
+   - kelengkapan audit trail.
+2. `scratch/test-p1-api.mjs` — **12/12 PASS**:
+   - `GET/POST /api/karyawan`, `GET/PATCH /api/karyawan/[id]`;
+   - Atasan hanya melihat divisinya; Atasan/Karyawan ditolak saat mencoba menulis;
+   - Karyawan dapat melihat detail dirinya sendiri;
+   - `POST /api/settings/divisi` hanya untuk HRD dan memakai RPC atomik.
+3. Regresi P0/fitur lama:
+   - `scratch/test-attendance.mjs` — PASS (termasuk audit koreksi absensi via trigger).
+   - `scratch/test-payroll.mjs` — **10/10 PASS** (draf, terbit, lock, RLS, audit trigger).
+   - `scratch/test-payroll-api.mjs` — PASS.
+   - `scratch/test-tahap6.mjs` — PASS (termasuk audit hari libur via trigger).
+   - `scratch/test-leave-workflow.mjs` — PASS (setelah reset state uji lama Siti ke kuota 11/12).
+4. `npm run build` — **PASS** (TypeScript + Next.js 16 production build, 0 error).
+
+> **Catatan state uji lama**: sebelum regresi dijalankan, kuota Siti 2026 dikembalikan ke `terpakai_hari=11` dan slip Siti Oktober 2026 yang sudah terbit dari pengujian sebelumnya dihapus. Ini adalah pembersihan state uji, bukan perubahan aturan P1. Tanpa reset, skrip lama gagal karena mengasumsikan kuota awal 1 hari dan draf Oktober belum ada.
+
+> **Lint**: `npm run lint` masih memuat error pre-existing di file lama yang tidak terkait P1; gate utama proyek ini adalah `npm run build` dan skrip uji di atas.
 
 ---
 *Diverifikasi dan disetujui untuk rilis produksi di Netlify.*

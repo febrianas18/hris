@@ -55,13 +55,7 @@ export async function POST(req: NextRequest) {
       await supabase.from('hari_libur').delete().eq('tanggal', old_tanggal);
     }
 
-    // Cek apakah tanggal sudah ada
-    const { data: existing } = await supabase
-      .from('hari_libur')
-      .select('*')
-      .eq('tanggal', tanggal)
-      .maybeSingle();
-
+    // Upsert data hari libur; trigger audit mencatat penambahan/perubahan.
     const { data: saved, error } = await supabase
       .from('hari_libur')
       .upsert({ tanggal, keterangan, jenis })
@@ -71,15 +65,6 @@ export async function POST(req: NextRequest) {
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
-
-    await supabase.from('audit_log').insert({
-      pelaku_id: user.id,
-      aksi: existing ? 'perubahan_hari_libur' : 'penambahan_hari_libur',
-      nama_tabel: 'hari_libur',
-      data_id: tanggal,
-      nilai_sebelum: existing,
-      nilai_sesudah: saved,
-    });
 
     return NextResponse.json({
       success: true,
@@ -152,15 +137,6 @@ export async function DELETE(req: NextRequest) {
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
-
-    await supabase.from('audit_log').insert({
-      pelaku_id: user.id,
-      aksi: 'penghapusan_hari_libur',
-      nama_tabel: 'hari_libur',
-      data_id: tanggal,
-      nilai_sebelum: existing,
-      nilai_sesudah: null,
-    });
 
     return NextResponse.json({
       success: true,

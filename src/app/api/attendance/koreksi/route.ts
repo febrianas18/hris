@@ -119,32 +119,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 7. Catat aksi ke audit_log (BR-12)
-    const { error: auditError } = await supabase.from('audit_log').insert({
-      pelaku_id: user.id,
-      aksi: 'koreksi_absensi',
-      nama_tabel: 'absensi',
-      data_id: absensi_id,
-      nilai_sebelum: {
-        jam_masuk: existingAttendance.jam_masuk,
-        jam_pulang: existingAttendance.jam_pulang,
-        status: existingAttendance.status,
-        dikoreksi_oleh: existingAttendance.dikoreksi_oleh,
-        alasan_koreksi: existingAttendance.alasan_koreksi,
-      },
-      nilai_sesudah: {
-        jam_masuk: updatedAttendance.jam_masuk,
-        jam_pulang: updatedAttendance.jam_pulang,
-        status: updatedAttendance.status,
-        dikoreksi_oleh: updatedAttendance.dikoreksi_oleh,
-        alasan_koreksi: updatedAttendance.alasan_koreksi,
-      },
-    });
-
-    if (auditError) {
-      console.error('Peringatan: Gagal mencatat audit_log koreksi absensi:', auditError);
-    }
-
+    // 7. Audit dicatat otomatis oleh trigger audit_log (BR-12).
     return NextResponse.json({
       success: true,
       message: 'Data absensi berhasil dikoreksi dan tercatat di audit log.',

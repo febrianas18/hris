@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getAuthUser } from '@/utils/auth';
 import { getServerTimeWIB } from '@/utils/time';
+import { buildMockTimePayload } from '@/utils/devMock';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,10 +78,11 @@ export async function POST(req: NextRequest) {
 
     // b. Cek apakah sudah pernah check-out sebelumnya hari ini
     if (existingAttendance.jam_pulang) {
+      const existingOutTime = getServerTimeWIB(existingAttendance.jam_pulang).timeStr.slice(0, 5);
       return NextResponse.json(
         {
           success: false,
-          error: `Anda sudah melakukan check-out hari ini pada pukul ${existingAttendance.jam_pulang.slice(11, 16)} WIB. Check-out tidak dapat diulang.`,
+          error: `Anda sudah melakukan check-out hari ini pada pukul ${existingOutTime} WIB. Check-out tidak dapat diulang.`,
           data: existingAttendance,
         },
         { status: 400 }
@@ -101,20 +103,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Update data absensi dengan jam_pulang server WIB
-    const { data: updatedAttendance, error: updateError } = await supabase
-      .from('absensi')
-      .update({
-        jam_pulang: serverTime.timestamptzStr,
-      })
-      .eq('id', existingAttendance.id)
-      .select()
-      .single();
+    // 4. Catat check-out lewat RPC server-side (BR-02).
+    // Waktu check-out dihitung ulang di database, bukan dari body/request browser.
+    const { p_mock_time_str, p_mock_sig } = buildMockTimePayload(mockTimeHeader);
+    const { data: updatedAttendance, error: updateError } = await supabase.rpc('fn_check_out', {
+      p_mock_time_str,
+      p_mock_sig,
+    });
 
     if (updateError) {
       return NextResponse.json(
-        { success: false, error: `Gagal menyimpan check-out: ${updateError.message}` },
-        { status: 500 }
+        {
+          success: false,
+          error: updateError.message,
+        },
+        { status: updateError.code === 'P0001' ? 400 : 500 }
       );
     }
 

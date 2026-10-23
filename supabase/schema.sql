@@ -2,6 +2,19 @@
 -- DDL SCHEMA DATABASE HRIS PT KARSA LINTAS NUSANTARA
 -- Sesuai: docs/ERD_HRIS.pdf & docs/PRD_HRIS.docx.md
 -- Target: PostgreSQL / Supabase
+--
+-- CATATAN KEAMANAN (P0/P1):
+-- File ini adalah DDL dasar. Untuk instalasi baru, jalankan berurutan:
+--   1. schema.sql
+--   2. rls_policies.sql
+--   3. supabase/migrations/20261023_p0_security_hardening.sql
+--   4. supabase/migrations/20261023_p0_security_hardening_fix_hmac.sql
+--   5. supabase/migrations/20261023_p1_business_rules.sql
+-- Migration P0 mengganti RPC/RLS lama dengan versi yang memverifikasi
+-- auth.uid(), melarang tulis langsung absensi/pengajuan/audit, dan memindahkan
+-- check-in/check-out ke RPC server-side. Migration P1 menambahkan modul admin
+-- BR-01 (buat/ubah karyawan + sinkronisasi manajer divisi), validasi database
+-- BR-04/05/06/07/08/09/10, serta audit trigger BR-12 untuk tabel master.
 -- ==============================================================================
 
 -- 1. EXTENSIONS
@@ -1005,5 +1018,42 @@ BEGIN
     RETURN true;
 END;
 $$;
+
+-- ==============================================================================
+-- CATATAN P1 (2026-10-23)
+-- ==============================================================================
+-- Perubahan utama ada di supabase/migrations/20261023_p1_business_rules.sql:
+--
+-- BR-01 (manajemen karyawan):
+--   - fn_admin_create_karyawan(email, password, ...) membuat auth.users,
+--     auth.identities, profiles, dan kuota_cuti secara atomik.
+--   - fn_admin_update_karyawan(...) mengubah data kepegawaian dengan proteksi
+--     peran/status sendiri dan sinkronisasi manajer divisi.
+--   - fn_admin_assign_divisi_manager(divisi, manajer) menunjuk manajer Atasan
+--     atau HRD aktif; satu divisi satu manajer, satu Atasan satu divisi.
+--   - Trigger: trigger_profiles_sync_manager, trigger_validate_divisi_manager,
+--     trigger_protect_last_hrd, trigger_protect_self_profile,
+--     trigger_protect_profile_email.
+--
+-- BR-04/05/06/07/08/09/10 (validasi database):
+--   - fn_count_working_days menghitung hari kerja (Senin-Jumat, bukan libur).
+--   - fn_submit_pengajuan menghitung ulang jumlah hari dan perlu_atasan,
+--     memeriksa H-3/H-1/H+3, masa kerja, overlap, kuota, izin maks. 2 hari,
+--     dan lampiran sakit; memakai advisory lock per karyawan.
+--   - fn_approve_pengajuan_tahap1 hanya boleh oleh manajer_id divisi pemohon.
+--   - fn_reject_pengajuan: HRD hanya boleh menolak setelah Tahap 1 selesai.
+--   - fn_cancel_pengajuan: HRD hanya boleh membatalkan pengajuan yang sudah
+--     disetujui dan sebelum tanggal mulai; pemohon tidak boleh membatalkan
+--     pengajuan yang sudah disetujui akhir.
+--
+-- BR-12 (audit otomatis):
+--   - Trigger audit pada profiles, kuota_cuti, absensi, divisi, hari_libur,
+--     dan slip_gaji. Route/API tidak boleh menulis audit manual untuk tabel
+--     tersebut. Workflow pengajuan tetap menulis audit manual karena
+--     transisi status membutuhkan konteks aksi.
+--
+-- Semua helper/trigger function memakai SECURITY DEFINER dengan
+-- SET search_path = public, pg_temp.
+-- ==============================================================================
 
 

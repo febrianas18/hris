@@ -74,16 +74,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 400 });
       }
       updatedQuota = data;
-
-      // Catat ke audit_log
-      await supabase.from('audit_log').insert({
-        pelaku_id: user.id,
-        aksi: 'perubahan_jatah_cuti',
-        nama_tabel: 'kuota_cuti',
-        data_id: existingQuota.id,
-        nilai_sebelum: { jatah_hari: existingQuota.jatah_hari, terpakai_hari: existingQuota.terpakai_hari },
-        nilai_sesudah: { jatah_hari: updatedQuota.jatah_hari, terpakai_hari: updatedQuota.terpakai_hari },
-      });
     } else {
       const { data, error } = await supabase
         .from('kuota_cuti')
@@ -100,16 +90,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 400 });
       }
       updatedQuota = data;
-
-      // Catat ke audit_log
-      await supabase.from('audit_log').insert({
-        pelaku_id: user.id,
-        aksi: 'penetapan_jatah_cuti_baru',
-        nama_tabel: 'kuota_cuti',
-        data_id: updatedQuota.id,
-        nilai_sebelum: null,
-        nilai_sesudah: updatedQuota,
-      });
     }
 
     return NextResponse.json({

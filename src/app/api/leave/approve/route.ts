@@ -93,6 +93,24 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Hanya Atasan yang ditunjuk sebagai manajer divisi pemohon (BR-09).
+      const { data: divisiPemohon } = await supabase
+        .from('divisi')
+        .select('manajer_id')
+        .eq('id', pemohonDivisiId)
+        .maybeSingle();
+
+      if (divisiPemohon?.manajer_id !== user.id) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Akses ditolak. Hanya Atasan yang ditunjuk sebagai manajer divisi pemohon yang berhak menyetujui Tahap 1 (Aturan BR-09).',
+          },
+          { status: 403 }
+        );
+      }
+
       const { data: updated, error: rpcErr } = await supabase.rpc(
         'fn_approve_pengajuan_tahap1',
         {

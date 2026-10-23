@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getAuthUser } from '@/utils/auth';
 import { getServerTimeWIB } from '@/utils/time';
+import { buildMockTimePayload } from '@/utils/devMock';
 
 export const dynamic = 'force-dynamic';
 
@@ -232,31 +233,25 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (existingAttendance) {
+      const existingTime = getServerTimeWIB(existingAttendance.jam_masuk).timeStr.slice(0, 5);
       return NextResponse.json(
         {
           success: false,
-          error: `Anda sudah melakukan check-in untuk hari ini pada pukul ${existingAttendance.jam_masuk.slice(11, 16)} WIB.`,
+          error: `Anda sudah melakukan check-in untuk hari ini pada pukul ${existingTime} WIB.`,
           data: existingAttendance,
         },
         { status: 400 }
       );
     }
 
-    // 4. Penentuan Status Kehadiran (BR-03):
-    // Check-in lewat dari 08.15.00 WIB berstatus 'terlambat'; tepat 08.15.00 masih 'hadir'
-    const statusKehadiran = serverTime.statusKehadiran; // 'hadir' | 'terlambat'
-
-    // 5. Catat ke tabel absensi
-    const { data: newAttendance, error: insertError } = await supabase
-      .from('absensi')
-      .insert({
-        karyawan_id: user.id,
-        tanggal: serverTime.dateStr,
-        jam_masuk: serverTime.timestamptzStr,
-        status: statusKehadiran,
-      })
-      .select()
-      .single();
+    // 4. Catat check-in lewat RPC server-side (BR-02/BR-03).
+    // Tanggal, jam, dan status dihitung ulang di database sehingga tidak bisa
+    // dipalsukan lewat request langsung ke REST API.
+    const { p_mock_time_str, p_mock_sig } = buildMockTimePayload(mockTimeHeader);
+    const { data: newAttendance, error: insertError } = await supabase.rpc('fn_check_in', {
+      p_mock_time_str,
+      p_mock_sig,
+    });
 
     if (insertError) {
       // Tangani potensi unique constraint violation jika race condition
@@ -267,16 +262,18 @@ export async function POST(req: NextRequest) {
         );
       }
       return NextResponse.json(
-        { success: false, error: `Gagal mencatat absensi: ${insertError.message}` },
-        { status: 500 }
+        { success: false, error: insertError.message },
+        { status: insertError.code === 'P0001' ? 400 : 500 }
       );
     }
+
+    const finalStatus = (newAttendance as { status?: string } | null)?.status;
 
     return NextResponse.json(
       {
         success: true,
         message: `Check-in berhasil tercatat pukul ${serverTime.timeStr} WIB dengan status ${
-          statusKehadiran === 'hadir' ? 'Hadir (Tepat Waktu)' : 'Terlambat'
+          finalStatus === 'terlambat' ? 'Terlambat' : 'Hadir (Tepat Waktu)'
         }.`,
         data: newAttendance,
         serverTime,

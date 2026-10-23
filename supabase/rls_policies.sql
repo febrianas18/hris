@@ -5,34 +5,65 @@
 -- ==============================================================================
 
 -- 1. HELPER FUNCTIONS
+-- Catatan P0/P1: seluruh helper SECURITY DEFINER memakai search_path tetap
+-- (public, pg_temp) agar tidak dapat dibajak objek di schema lain.
 CREATE OR REPLACE FUNCTION public.is_active_user()
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public, pg_temp
+AS $$
     SELECT EXISTS (
         SELECT 1 FROM public.profiles
         WHERE id = auth.uid() AND aktif = true
     );
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$;
 
 CREATE OR REPLACE FUNCTION public.is_hrd()
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public, pg_temp
+AS $$
     SELECT EXISTS (
         SELECT 1 FROM public.profiles
         WHERE id = auth.uid() AND peran = 'hrd' AND aktif = true
     );
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$;
 
 CREATE OR REPLACE FUNCTION public.is_atasan()
-RETURNS BOOLEAN AS $$
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public, pg_temp
+AS $$
     SELECT EXISTS (
         SELECT 1 FROM public.profiles
         WHERE id = auth.uid() AND peran = 'atasan' AND aktif = true
     );
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$;
 
 CREATE OR REPLACE FUNCTION public.get_my_divisi_id()
-RETURNS UUID AS $$
+RETURNS UUID
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public, pg_temp
+AS $$
     SELECT divisi_id FROM public.profiles WHERE id = auth.uid() AND aktif = true;
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$;
+
+REVOKE ALL ON FUNCTION public.is_active_user() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.is_hrd() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.is_atasan() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.get_my_divisi_id() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_active_user() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.is_hrd() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.is_atasan() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_my_divisi_id() TO authenticated, service_role;
 
 -- 2. TABEL: PROFILES
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -42,9 +73,8 @@ CREATE POLICY "profiles_select_policy" ON public.profiles
 FOR SELECT TO authenticated
 USING (
     public.is_hrd()
-    OR (public.is_atasan() AND (divisi_id = public.get_my_divisi_id() OR id = auth.uid()))
+    OR (public.is_atasan() AND divisi_id = public.get_my_divisi_id())
     OR id = auth.uid()
-    OR aktif = true
 );
 
 DROP POLICY IF EXISTS "profiles_insert_policy" ON public.profiles;
@@ -55,14 +85,33 @@ WITH CHECK (public.is_hrd());
 DROP POLICY IF EXISTS "profiles_update_policy" ON public.profiles;
 CREATE POLICY "profiles_update_policy" ON public.profiles
 FOR UPDATE TO authenticated
-USING (
-    public.is_hrd()
-    OR id = auth.uid()
-)
-WITH CHECK (
-    public.is_hrd()
-    OR (id = auth.uid() AND peran = (SELECT peran FROM public.profiles WHERE id = auth.uid()) AND aktif = true)
-);
+USING (public.is_hrd())
+WITH CHECK (public.is_hrd());
+
+-- Cegah siapa pun (termasuk HRD) mengubah peran/menonaktifkan akun sendiri.
+CREATE OR REPLACE FUNCTION public.trg_protect_self_profile()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+    IF auth.uid() IS NOT NULL
+       AND OLD.id = auth.uid()
+       AND (NEW.peran IS DISTINCT FROM OLD.peran
+            OR NEW.aktif IS DISTINCT FROM OLD.aktif) THEN
+        RAISE EXCEPTION 'Anda tidak boleh mengubah peran atau menonaktifkan akun sendiri (BR-01).';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_protect_self_profile ON public.profiles;
+CREATE TRIGGER trigger_protect_self_profile
+BEFORE UPDATE ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_protect_self_profile();
 
 DROP POLICY IF EXISTS "profiles_delete_policy" ON public.profiles;
 CREATE POLICY "profiles_delete_policy" ON public.profiles
@@ -137,31 +186,10 @@ USING (
     )
 );
 
+-- P0: INSERT/UPDATE pengajuan cuti hanya lewat RPC SECURITY DEFINER
+-- (fn_submit_pengajuan, fn_approve_*, fn_reject_pengajuan, fn_cancel_pengajuan).
 DROP POLICY IF EXISTS "pengajuan_cuti_insert_policy" ON public.pengajuan_cuti;
-CREATE POLICY "pengajuan_cuti_insert_policy" ON public.pengajuan_cuti
-FOR INSERT TO authenticated
-WITH CHECK (
-    karyawan_id = auth.uid() AND public.is_active_user()
-);
-
 DROP POLICY IF EXISTS "pengajuan_cuti_update_policy" ON public.pengajuan_cuti;
-CREATE POLICY "pengajuan_cuti_update_policy" ON public.pengajuan_cuti
-FOR UPDATE TO authenticated
-USING (
-    (karyawan_id = auth.uid() AND status IN ('diajukan', 'disetujui_atasan'))
-    OR (
-        public.is_atasan() AND EXISTS (
-            SELECT 1 FROM public.profiles p
-            WHERE p.id = pengajuan_cuti.karyawan_id AND p.divisi_id = public.get_my_divisi_id()
-        )
-    )
-    OR public.is_hrd()
-)
-WITH CHECK (
-    (karyawan_id = auth.uid() AND status = 'dibatalkan')
-    OR (public.is_atasan() AND status IN ('disetujui_atasan', 'ditolak'))
-    OR public.is_hrd()
-);
 
 -- 7. TABEL: ABSENSI
 ALTER TABLE public.absensi ENABLE ROW LEVEL SECURITY;
@@ -180,25 +208,18 @@ USING (
     )
 );
 
+-- P0: INSERT/UPDATE absensi karyawan hanya lewat RPC fn_check_in/fn_check_out.
+-- HRD tetap boleh insert/update langsung untuk koreksi absensi.
 DROP POLICY IF EXISTS "absensi_insert_policy" ON public.absensi;
 CREATE POLICY "absensi_insert_policy" ON public.absensi
 FOR INSERT TO authenticated
-WITH CHECK (
-    (karyawan_id = auth.uid() AND public.is_active_user())
-    OR public.is_hrd()
-);
+WITH CHECK (public.is_hrd());
 
 DROP POLICY IF EXISTS "absensi_update_policy" ON public.absensi;
 CREATE POLICY "absensi_update_policy" ON public.absensi
 FOR UPDATE TO authenticated
-USING (
-    (karyawan_id = auth.uid() AND jam_pulang IS NULL)
-    OR public.is_hrd()
-)
-WITH CHECK (
-    (karyawan_id = auth.uid() AND jam_pulang IS NOT NULL)
-    OR public.is_hrd()
-);
+USING (public.is_hrd())
+WITH CHECK (public.is_hrd());
 
 DROP POLICY IF EXISTS "absensi_delete_policy" ON public.absensi;
 CREATE POLICY "absensi_delete_policy" ON public.absensi
@@ -240,10 +261,9 @@ CREATE POLICY "audit_log_select_policy" ON public.audit_log
 FOR SELECT TO authenticated
 USING (public.is_hrd());
 
+-- P0: audit_log hanya ditulis lewat fn_write_audit / RPC SECURITY DEFINER.
+-- Tidak ada INSERT policy untuk authenticated.
 DROP POLICY IF EXISTS "audit_log_insert_policy" ON public.audit_log;
-CREATE POLICY "audit_log_insert_policy" ON public.audit_log
-FOR INSERT TO authenticated
-WITH CHECK (public.is_active_user());
 
 -- 10. STORAGE BUCKET: medical-certificates (BR-08)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -296,3 +316,26 @@ USING (
         OR (storage.foldername(name))[1] = auth.uid()::text
     )
 );
+
+-- ==============================================================================
+-- CATATAN P1 (2026-10-23) — lihat supabase/migrations/20261023_p1_business_rules.sql
+-- ==============================================================================
+-- 1. Audit otomatis (BR-12) dipasang sebagai trigger AFTER pada:
+--    profiles, kuota_cuti, absensi, divisi, hari_libur, dan slip_gaji.
+--    Route/API TIDAK boleh lagi memanggil fn_write_audit untuk tabel-tabel
+--    tersebut agar audit_log tidak berisi baris ganda.
+-- 2. Workflow pengajuan cuti tetap memakai audit manual di dalam RPC karena
+--    aksi transisi status (diajukan/disetujui_atasan/disetujui/ditolak/
+--    dibatalkan) tidak dapat disimpulkan hanya dari perubahan baris.
+-- 3. Trigger BR-01:
+--    - trigger_profiles_sync_manager  : sinkronisasi divisi.manajer_id.
+--    - trigger_validate_divisi_manager: manajer harus Atasan/HRD aktif.
+--    - trigger_protect_last_hrd       : minimal satu HRD aktif.
+--    - trigger_protect_self_profile   : larangan ubah peran/nonaktif sendiri.
+--    - trigger_protect_profile_email  : email profil harus sama dengan auth.
+-- 4. Semua helper dan trigger function memakai search_path tetap
+--    (public, pg_temp) dan SECURITY DEFINER.
+-- 5. RPC admin BR-01: fn_admin_create_karyawan, fn_admin_update_karyawan,
+--    fn_admin_assign_divisi_manager. RPC ini membuat/mengubah profil dan
+--    kuota secara atomik tanpa membutuhkan service-role key di aplikasi.
+-- ==============================================================================
