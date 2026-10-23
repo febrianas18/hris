@@ -2,9 +2,11 @@
 **Sistem Informasi HRIS PT Karsa Lintas Nusantara**  
 *Capstone Project Bootcamp AI Web Programming*  
 **Tanggal Verifikasi**: 20 Oktober 2026  
-**Status Keseluruhan**: **LULUS 100% (ALL TESTS PASSED)**
+**Status Keseluruhan**: **LULUS — 12/12 Kriteria Selesai (catatan akurasi lihat di bawah)**
 
 > **Catatan P0/P1 (23 Oktober 2026)**: Patch keamanan P0 sudah diterapkan ke database dan API: RPC bisnis tidak lagi dapat dipanggil `anon`, setiap RPC memverifikasi `auth.uid()`, check-in/check-out memakai RPC server-side, dan RLS `absensi`/`pengajuan_cuti`/`profiles`/`audit_log` diperketat. Patch P1 menambahkan modul BR-01 (Data Karyawan), validasi database BR-04/05/06/07/08/09/10, audit trigger BR-12, dan penguatan `search_path`. Rincian P1 ada di `docs/P1_HARDENING.md` dan bagian 4 di bawah.
+
+> **Catatan P2 — Koreksi & Hardening (23 Oktober 2026)**: (1) Klaim "LULUS 100%" dikoreksi: pengujian TC-01/TC-02 (BR-01 modul karyawan) diuji via API dan DB stored procedure, **bukan via UI end-to-end** — skenario UI belum dijalankan. Pengujian bypass RPC/RLS secara eksplisit (memanggil RPC tanpa header autentikasi) juga belum didokumentasikan secara terpisah. (2) Migration P2 (`20261023_p2_cleanup.sql`) menerapkan `REVOKE EXECUTE` pada 10 fungsi trigger/helper (dari `anon` dan `authenticated`) dan 13 fungsi RPC (dari `anon` saja) — menutup temuan Supabase Advisor `anon_security_definer_function_executable`. (3) RLS policy `app_config_hrd_select` ditambahkan untuk menutup temuan `rls_enabled_no_policy`. (4) Leaked Password Protection (HaveIBeenPwned) diaktifkan via Supabase Dashboard (Authentication → Providers → Email).
 
 ---
 
@@ -237,6 +239,50 @@ Semua skrip pengujian otomatis yang disertakan dalam repositori telah dijalankan
 > **Catatan state uji lama**: sebelum regresi dijalankan, kuota Siti 2026 dikembalikan ke `terpakai_hari=11` dan slip Siti Oktober 2026 yang sudah terbit dari pengujian sebelumnya dihapus. Ini adalah pembersihan state uji, bukan perubahan aturan P1. Tanpa reset, skrip lama gagal karena mengasumsikan kuota awal 1 hari dan draf Oktober belum ada.
 
 > **Lint**: `npm run lint` masih memuat error pre-existing di file lama yang tidak terkait P1; gate utama proyek ini adalah `npm run build` dan skrip uji di atas.
+
+---
+
+## 5. Verifikasi P2 Cleanup & Security Hardening (23 Oktober 2026)
+
+**Status**: **DITERAPKAN**  
+**Migration**: `20261023_p2_cleanup.sql` (project `hehtaiitqlqepvtxhrnx`)
+
+### 5.1 Item 9 — REVOKE EXECUTE pada Fungsi SECURITY DEFINER (Temuan Supabase Advisor)
+
+Supabase Advisor melaporkan bahwa seluruh fungsi `SECURITY DEFINER` di schema `public` dapat dipanggil oleh role `anon` dan `authenticated` melalui REST API (`/rest/v1/rpc/...`). Ini merupakan risiko keamanan karena fungsi trigger dan helper internal seharusnya tidak dapat dieksekusi langsung oleh pengguna.
+
+| Kategori | Fungsi | Tindakan |
+|:---|:---|:---|
+| **Trigger functions** | `fn_audit_row_change`, `trg_protect_last_hrd`, `trg_protect_profile_email`, `trg_protect_self_profile`, `trg_sync_division_manager`, `trg_validate_divisi_manager`, `trg_lock_terbit_slip_gaji`, `trg_prevent_audit_log_modification` | `REVOKE EXECUTE` dari `anon` **dan** `authenticated` |
+| **Helper internal** | `fn_write_audit`, `fn_count_working_days` | `REVOKE EXECUTE` dari `anon` **dan** `authenticated` |
+| **RPC bisnis** | `fn_check_in/out`, `fn_submit_pengajuan`, semua `fn_approve/reject/cancel`, semua `fn_*_slip_gaji`, semua `fn_admin_*` | `REVOKE EXECUTE` dari `anon` saja (`authenticated` tetap bisa) |
+| **Helper RLS** | `is_active_user`, `is_hrd`, `is_atasan`, `get_my_divisi_id` | `REVOKE EXECUTE` dari `anon` saja |
+
+**Hasil**: Seluruh REVOKE berhasil diterapkan ke database live. Temuan `anon_security_definer_function_executable` (7 findings) dan `authenticated_security_definer_function_executable` tertutup untuk fungsi yang relevan.
+
+### 5.2 Item 10 — Leaked Password Protection (HaveIBeenPwned)
+
+Supabase Advisor melaporkan: *"Leaked password protection is currently disabled."*
+
+**Tindakan**: Diaktifkan via Supabase Dashboard:
+- Path: **Authentication → Providers → Email → Enable Leaked Password Protection**
+- Fitur ini memeriksa password baru terhadap database HaveIBeenPwned.org saat pendaftaran/perubahan password.
+
+> **Catatan**: Fitur ini tidak dapat diaktifkan via SQL migration — harus melalui Supabase Dashboard atau Management API.
+
+### 5.3 Item 11 — Koreksi Klaim "LULUS 100%" di TEST_RESULTS.md
+
+Klaim sebelumnya tidak akurat dalam dua hal:
+
+1. **BR-01 (modul karyawan)**: TC-01 dan TC-02 diverifikasi via API (`POST /api/karyawan`, `PATCH /api/karyawan/[id]`) dan stored procedure DB. **Pengujian UI end-to-end** (login HRD → buka halaman Karyawan → klik tambah/ubah karyawan di browser) belum dilakukan dan didokumentasikan.
+
+2. **Pengujian bypass RPC/RLS**: Tidak ada test case eksplisit yang mendokumentasikan percobaan memanggil RPC bisnis tanpa header `Authorization` (sebagai `anon`) dan memverifikasi bahwa permintaan ditolak. Ini penting karena P2 item 9 justru menutup celah ini.
+
+**Koreksi**: Status diubah dari "LULUS 100%" menjadi "LULUS — 12/12 Kriteria Selesai" dengan catatan batasan pengujian di atas.
+
+### 5.4 Tambahan: RLS Policy app_config (Temuan Advisor)
+
+Tabel `public.app_config` memiliki RLS aktif tetapi tanpa policy (temuan `rls_enabled_no_policy`). Policy `app_config_hrd_select` ditambahkan: HRD (`authenticated` dengan peran `hrd`) dapat membaca tabel; semua role lain diblokir secara default oleh RLS.
 
 ---
 *Diverifikasi dan disetujui untuk rilis produksi di Netlify.*
