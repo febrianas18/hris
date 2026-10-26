@@ -8,9 +8,10 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Calendar,
   AlertTriangle,
 } from 'lucide-react';
+import { StatusPill } from '@/components/app/StatusPill';
+import { cn } from '@/lib/utils';
 
 interface AttendanceData {
   id: string;
@@ -83,7 +84,11 @@ export default function AttendanceWidget({
   }, []);
 
   useEffect(() => {
-    fetchStatus();
+    // Muat status setelah render pertama selesai agar tidak memicu render berantai.
+    const loadStatus = async () => {
+      await fetchStatus();
+    };
+    void loadStatus();
   }, [fetchStatus]);
 
   // Update tampilan jam setiap detik diselaraskan dengan waktu WIB
@@ -97,7 +102,7 @@ export default function AttendanceWidget({
         second: '2-digit',
         hour12: false,
       });
-      setDisplayTime(`${formatter.format(nowWIB)} WIB`);
+      setDisplayTime(formatter.format(nowWIB));
     }, 1000);
 
     return () => clearInterval(timer);
@@ -186,103 +191,130 @@ export default function AttendanceWidget({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex items-center justify-center min-h-[160px]">
-        <div className="flex items-center gap-2.5 text-slate-500 text-sm font-medium">
-          <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-          <span>Memuat status absensi server...</span>
+      <div
+        className="clay-card flex min-h-[260px] flex-col justify-center gap-4 bg-[#d9f5e8] p-5"
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <span className="sr-only">Memuat status absensi server…</span>
+        <div className="flex items-center justify-between">
+          <div className="h-3 w-28 animate-pulse rounded-full bg-muted" />
+          <div className="h-6 w-24 animate-pulse rounded-lg bg-muted" />
         </div>
+        <div className="h-16 animate-pulse rounded-xl bg-muted/70" />
+        <div className="h-9 animate-pulse rounded-xl bg-muted/70" />
       </div>
     );
   }
 
   const attendance = data?.attendance;
   const isCheckedIn = Boolean(attendance);
-  const isCheckedOut = Boolean(attendance?.jam_pulang);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-sm transition-all hover:shadow-md">
-      {/* Header Widget */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+    <section
+      aria-labelledby="attendance-widget-title"
+      className="clay-card relative flex flex-col overflow-hidden bg-[#d9f5e8]"
+    >
+      {/* Header: label, status ringkas, dan jam server WIB */}
+      <div className="flex items-start justify-between gap-3 px-5 pt-5">
+        <div className="min-w-0">
+          <p
+            id="attendance-widget-title"
+            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+          >
             Absensi Hari Ini
-          </span>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
-            Server WIB
-          </span>
+          </p>
+          <p className="mt-1 truncate font-heading text-sm font-semibold text-foreground">
+            {isCheckedIn
+              ? attendance?.jam_pulang
+                ? 'Sesi kerja selesai'
+                : 'Sedang bekerja'
+              : 'Belum check-in'}
+          </p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/60">
-          <Clock className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
-          <span>{displayTime || data?.serverTime?.timeStr + ' WIB'}</span>
+
+        <div className="clay-inset flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[11px] font-semibold text-muted-foreground tabular-nums">
+          <Clock aria-hidden="true" className="size-3 text-primary" />
+          <span>{displayTime ? `${displayTime} WIB` : `${data?.serverTime?.timeStr ?? '--:--:--'} WIB`}</span>
         </div>
       </div>
 
-      {/* Status Utama */}
-      <div className="mt-4">
+      {/* Isi utama */}
+      <div className="mt-4 flex-1 px-5">
         {attendance ? (
-          <div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Check-in {formatTimeOnly(attendance.jam_masuk)}
-              </span>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${
-                  attendance.status === 'hadir'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}
-              >
-                {attendance.status === 'hadir' ? 'Hadir' : 'Terlambat'}
-              </span>
+          <>
+            <div className="clay-inset grid grid-cols-2 divide-x divide-white/60 overflow-hidden">
+              <div className="bg-primary/[0.06] px-3.5 py-3">
+                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  <LogIn aria-hidden="true" className="size-3 text-primary" /> Masuk
+                </p>
+                <p className="mt-1 font-heading text-xl font-extrabold text-foreground tabular-nums">
+                  {formatTimeOnly(attendance.jam_masuk)}
+                </p>
+              </div>
+              <div className="bg-info/[0.06] px-3.5 py-3">
+                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  <LogOut aria-hidden="true" className="size-3 text-info" /> Pulang
+                </p>
+                <p
+                  className={cn(
+                    'mt-1 font-heading text-xl font-extrabold tabular-nums',
+                    attendance.jam_pulang ? 'text-foreground' : 'text-muted-foreground/60'
+                  )}
+                >
+                  {attendance.jam_pulang ? formatTimeOnly(attendance.jam_pulang) : '--:--'}
+                </p>
+              </div>
             </div>
 
-            <p className="text-xs text-slate-500 mt-1">
-              {attendance.jam_pulang ? (
-                <span className="text-emerald-700 font-medium">
-                  Selesai kerja · Check-out pada pukul{' '}
-                  <strong className="font-semibold">{formatTimeOnly(attendance.jam_pulang)} WIB</strong>
-                </span>
-              ) : (
-                <span>Check-out bisa dilakukan sampai pukul 23.59 WIB</span>
-              )}
-            </p>
-          </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <StatusPill kind="attendance" status={attendance.status} />
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {attendance.jam_pulang
+                  ? 'Catatan kehadiran hari ini sudah lengkap.'
+                  : 'Check-out dapat dilakukan hingga 23.59 WIB.'}
+              </p>
+            </div>
+          </>
         ) : (
           <div>
-            <div className="text-xl sm:text-2xl font-bold text-slate-800">
-              Belum Check-in
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="font-mono text-[26px] leading-none font-semibold text-foreground tabular-nums">
+              {displayTime || data?.serverTime?.timeStr || '--:--:--'}
+              <span className="ml-1 font-sans text-xs font-medium text-muted-foreground">WIB</span>
+            </p>
+            <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
               {data?.blockReason ? (
-                <span className="text-amber-700 flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5 inline shrink-0" />
-                  {data.blockReason}
-                </span>
+                <>
+                  <AlertTriangle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-chart-5" />
+                  <span>{data.blockReason}</span>
+                </>
               ) : (
-                <span>Jendela check-in: 06.00 s/d 12.00 WIB (Batas jam masuk 08.15 WIB)</span>
+                <span>Jendela check-in 06.00–12.00 WIB · batas jam masuk 08.15 WIB.</span>
               )}
             </p>
           </div>
         )}
       </div>
 
-      {/* Tombol Aksi Check-in & Check-out */}
-      <div className="grid grid-cols-2 gap-3 mt-5">
+      {/* Tombol aksi */}
+      <div className="mt-5 grid grid-cols-2 gap-2.5 px-5 pb-5">
         <button
           id="btn-attendance-check-in"
           type="button"
           onClick={handleCheckIn}
           disabled={!data?.canCheckIn || isSubmitting !== null}
-          className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs transition-all ${
+          className={cn(
+            'inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-all duration-200',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
             data?.canCheckIn && isSubmitting === null
-              ? 'bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white shadow-sm shadow-indigo-200 cursor-pointer'
-              : 'bg-slate-100 text-slate-400 border border-slate-200/60 cursor-not-allowed opacity-60'
-          }`}
+              ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground shadow-sm hover:from-primary/90 hover:to-primary/80 active:translate-y-px'
+              : 'cursor-not-allowed border border-border/70 bg-muted text-muted-foreground/60'
+          )}
         >
           {isSubmitting === 'check-in' ? (
-            <Loader2 className="w-4 h-4 animate-spin text-white" />
+            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
           ) : (
-            <LogIn className="w-4 h-4" />
+            <LogIn aria-hidden="true" className="size-4" />
           )}
           <span>Check-in</span>
         </button>
@@ -292,38 +324,43 @@ export default function AttendanceWidget({
           type="button"
           onClick={handleCheckOut}
           disabled={!data?.canCheckOut || isSubmitting !== null}
-          className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-xs transition-all ${
+          className={cn(
+            'inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-all duration-200',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
             data?.canCheckOut && isSubmitting === null
-              ? 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white shadow-sm shadow-blue-200 cursor-pointer'
-              : 'bg-slate-100 text-slate-400 border border-slate-200/60 cursor-not-allowed opacity-60'
-          }`}
+              ? 'border border-border bg-gradient-to-b from-card to-muted/40 text-foreground shadow-xs hover:to-muted active:translate-y-px'
+              : 'cursor-not-allowed border border-border/70 bg-muted text-muted-foreground/60'
+          )}
         >
           {isSubmitting === 'check-out' ? (
-            <Loader2 className="w-4 h-4 animate-spin text-white" />
+            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
           ) : (
-            <LogOut className="w-4 h-4" />
+            <LogOut aria-hidden="true" className="size-4" />
           )}
           <span>Check-out</span>
         </button>
       </div>
 
-      {/* Banner Notifikasi Pesan Feedback */}
+      {/* Feedback aksi */}
       {feedback && (
         <div
-          className={`mt-4 p-3 rounded-xl border text-xs flex items-start gap-2.5 animate-in fade-in duration-200 ${
+          role="status"
+          aria-live="polite"
+          className={cn(
+            'mx-5 mb-5 flex items-start gap-2.5 rounded-xl border p-3 text-xs animate-in fade-in slide-in-from-bottom-1 duration-200 motion-reduce:animate-none',
             feedback.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              : 'bg-rose-50 text-rose-800 border-rose-200'
-          }`}
+              ? 'border-primary/25 bg-gradient-to-r from-primary/15 to-primary/5 text-primary'
+              : 'border-destructive/25 bg-gradient-to-r from-destructive/15 to-destructive/5 text-destructive'
+          )}
         >
           {feedback.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           ) : (
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           )}
           <span className="flex-1 leading-relaxed">{feedback.message}</span>
         </div>
       )}
-    </div>
+    </section>
   );
 }

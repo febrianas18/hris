@@ -14,12 +14,13 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  User,
-  Shield,
   Menu,
   X,
 } from 'lucide-react';
 import { signOutAction } from '@/app/dashboard/actions';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export interface LayoutProfileData {
   id: string;
@@ -37,6 +38,22 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
+const ROLE_LABEL: Record<string, string> = {
+  hrd: 'HRD',
+  atasan: 'Atasan',
+  karyawan: 'Karyawan',
+};
+
+function getInitials(name: string) {
+  return (name || '?')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase();
+}
+
 export default function AppLayout({ profile, children }: AppLayoutProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -48,7 +65,6 @@ export default function AppLayout({ profile, children }: AppLayoutProps) {
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      // Gunakan Intl.DateTimeFormat untuk WIB (GMT+7)
       const formatted = new Intl.DateTimeFormat('id-ID', {
         timeZone: 'Asia/Jakarta',
         weekday: 'long',
@@ -123,169 +139,213 @@ export default function AppLayout({ profile, children }: AppLayoutProps) {
   // Filter hanya menu yang diizinkan untuk peran saat ini
   const visibleNavItems = navItems.filter((item) => item.roles.includes(role));
 
-  const roleBadgeStyle = {
-    hrd: 'bg-purple-100 text-purple-700 border-purple-200',
-    atasan: 'bg-amber-100 text-amber-700 border-amber-200',
-    karyawan: 'bg-blue-100 text-blue-700 border-blue-200',
-  }[role];
+  const roleBadgeVariant: Record<string, 'default' | 'secondary' | 'outline'> = {
+    hrd: 'default',
+    atasan: 'secondary',
+    karyawan: 'outline',
+  };
 
   const namaDivisi = profile.divisi?.nama || '-';
+  const initials = getInitials(profile.nama_lengkap);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      {/* Mobile Top Header */}
-      <div className="md:hidden bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center font-bold text-sm">
-            <Building2 className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="font-extrabold text-white text-sm">KarsaHR</span>
-            <span className="text-[10px] text-slate-400 block -mt-0.5">PT KLN</span>
-          </div>
-        </div>
+    <div className="clay-app flex min-h-screen">
+      {/* Scrim gelap saat drawer menu mobile terbuka */}
+      {mobileMenuOpen && (
         <button
           type="button"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
-          aria-label="Toggle Menu"
-        >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-      </div>
+          aria-label="Tutup menu navigasi"
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-[2px] animate-in fade-in duration-150 motion-reduce:animate-none md:hidden"
+        />
+      )}
 
-      {/* Sidebar Navigasi Desktop (Sesuai Wireframe Halaman 1 & 2) */}
+      {/* Sidebar Navigasi */}
       <aside
-        className={`${
-          mobileMenuOpen ? 'block' : 'hidden'
-        } md:flex w-64 bg-white border-r border-slate-200 flex-col shrink-0 md:fixed md:inset-y-0 z-40 transition-all`}
+        id="app-sidebar"
+        aria-label="Navigasi utama"
+        className={cn(
+          mobileMenuOpen ? 'flex' : 'hidden',
+          'clay-sidebar fixed inset-y-0 left-0 z-50 w-72 shrink-0 flex-col overflow-hidden rounded-r-[1.75rem] md:sticky md:top-3 md:z-30 md:mb-3 md:ml-3 md:mr-0 md:mt-3 md:flex md:h-[calc(100vh-1.5rem)] md:w-64 md:rounded-[1.75rem]'
+        )}
       >
-        {/* Brand Header */}
-        <div className="h-18 flex items-center gap-3 px-6 border-b border-slate-100">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
-            <Building2 className="w-5 h-5" />
+        {/* Brand */}
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/60 px-5">
+          <div className="clay-tile flex size-10 items-center justify-center rounded-xl bg-[#0f7a5f] text-white">
+            <Building2 aria-hidden="true" className="size-[19px]" strokeWidth={1.9} />
           </div>
-          <div>
-            <div className="text-base font-extrabold text-slate-900 tracking-tight">
-              Karsa<span className="text-blue-600">HR</span>
+          <div className="min-w-0">
+            <div className="font-heading text-[16px] font-extrabold leading-tight tracking-tight text-sidebar-foreground">
+              Karsa<span className="text-primary">HR</span>
             </div>
-            <div className="text-[11px] text-slate-400 font-medium">PT Karsa Lintas Nusantara</div>
+            <div className="truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-[#564d70]">
+              PT Karsa Lintas Nusantara
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="ml-auto rounded-lg p-1.5 text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground md:hidden"
+            aria-label="Tutup menu navigasi"
+          >
+            <X aria-hidden="true" className="size-4" />
+          </button>
         </div>
 
-        {/* Menu Items Dinamis Sesuai Hak Akses Peran */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {visibleNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`));
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
-                </div>
-
-                {/* Badge Notifikasi Persetujuan (Wireframe Halaman 2: badge "4", Halaman 3: badge "1") */}
-                {item.badge !== undefined && (
-                  <span
-                    className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold ${
-                      isActive ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'
-                    }`}
+        {/* Menu */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <p className="px-2.5 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#5a5270]">
+            Menu
+          </p>
+          <ul className="space-y-1">
+            {visibleNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                pathname === item.href ||
+                (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`));
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={cn(
+                      'clay-nav-link group relative flex items-center justify-between gap-2 rounded-2xl px-3 py-2.5 text-[13px] transition-colors duration-150',
+                      isActive
+                        ? 'font-extrabold text-[#0b5b45]'
+                        : 'font-semibold text-[#4f4766] hover:text-[#241d38]'
+                    )}
                   >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <Icon
+                        aria-hidden="true"
+                        strokeWidth={1.9}
+                        className={cn(
+                          'size-4 shrink-0',
+                          isActive
+                            ? 'text-[#0f7a5f]'
+                            : 'text-[#6a6182] group-hover:text-[#3b3350]'
+                        )}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </span>
+
+                    {item.badge !== undefined && (
+                      <span
+                        className={cn(
+                          'inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-extrabold tabular-nums',
+                          isActive
+                            ? 'bg-[#0f7a5f] text-white'
+                            : 'bg-white/70 text-[#0f7a5f]'
+                        )}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
 
-        {/* User Info di Sudut Kiri Bawah Sidebar (Referensi Wireframe Halaman 1 & 2) */}
-        <div className="p-4 border-t border-slate-200 bg-slate-50/70">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-slate-200 to-slate-100 text-slate-700 border border-slate-300/80 flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-              <User className="w-4 h-4" />
-            </div>
+        {/* Info pengguna */}
+        <div className="shrink-0 border-t border-white/60 p-3">
+          <div className="clay-inset flex items-center gap-2.5 rounded-2xl p-3 ring-1 ring-white/60">
+            <span
+              aria-hidden="true"
+              className="clay-tile flex size-10 shrink-0 items-center justify-center rounded-full bg-[#c9f2e1] text-[11px] font-extrabold text-[#0b5b45]"
+            >
+              {initials}
+            </span>
             <div className="min-w-0 flex-1">
-              {/* Nama Pengguna */}
-              <div className="text-xs font-bold text-slate-900 truncate">
+              <div className="truncate text-xs font-bold text-sidebar-foreground">
                 {profile.nama_lengkap}
               </div>
-              {/* Peran · Divisi / Jabatan (Format Wireframe: "Karyawan · Penjualan" / "HRD · Kepala HRD") */}
-              <div className="text-[11px] text-slate-500 font-medium truncate mt-0.5 capitalize">
+              <div className="truncate text-[10px] font-semibold capitalize text-[#5a5270]">
                 {role} · {namaDivisi}
-              </div>
-              {/* NIK Pengguna */}
-              <div className="text-[10px] font-mono font-semibold text-slate-400 mt-0.5">
-                {profile.nik_karyawan}
               </div>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Main Body Content with Top Bar */}
-      <div className="flex-1 md:pl-64 flex flex-col min-w-0">
-        {/* Top Navbar Header (Menampilkan Info Pengguna di Sudut Kanan Atas) */}
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-30 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Server Time (WIB) */}
-          <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{currentTimeWIB || 'Zona WIB (Asia/Jakarta)'}</span>
-          </div>
-          <div className="sm:hidden text-xs font-bold text-slate-800">
-            {profile.nama_lengkap}
+      {/* Konten Utama */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Topbar */}
+        <header className="clay-topbar sticky top-2 z-30 mx-2 mt-2 flex h-16 shrink-0 items-center justify-between gap-3 px-4 sm:px-5 md:top-3 md:mx-3 md:mt-3 md:h-[4.25rem] md:px-6">
+          {/* Menu mobile */}
+          <div className="flex items-center gap-2.5 md:hidden">
+            <div className="clay-tile flex size-9 items-center justify-center rounded-xl bg-[#0f7a5f] text-white">
+              <Building2 aria-hidden="true" className="size-4" strokeWidth={1.9} />
+            </div>
+            <span className="font-heading text-sm font-extrabold text-foreground">
+              Karsa<span className="text-primary">HR</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="ml-1 flex size-10 items-center justify-center rounded-xl border border-white/80 bg-[#fff7ea] text-foreground/80 transition-colors hover:bg-[#f8eddc] hover:text-foreground"
+              aria-label={mobileMenuOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="app-sidebar"
+            >
+              {mobileMenuOpen ? (
+                <X aria-hidden="true" className="size-4" />
+              ) : (
+                <Menu aria-hidden="true" className="size-4" />
+              )}
+            </button>
           </div>
 
-          {/* User Info di Sudut Kanan Atas (Nama, NIK, Peran, Divisi) */}
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
+          {/* Jam server WIB */}
+          <div className="hidden items-center gap-2 text-xs font-semibold text-muted-foreground md:flex">
+            <span aria-hidden="true" className="size-2 rounded-full bg-primary shadow-[0_0_0_4px_rgba(15,122,95,0.13)]" />
+            <span className="tabular-nums">{currentTimeWIB || 'Zona WIB (Asia/Jakarta)'}</span>
+          </div>
+
+          {/* Informasi pengguna & keluar */}
+          <div className="ml-auto flex items-center gap-3">
+            <div className="hidden text-right sm:block">
               <div className="flex items-center justify-end gap-2">
-                <span className="text-xs font-bold text-slate-900">
-                  {profile.nama_lengkap}
-                </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${roleBadgeStyle}`}>
-                  {role}
-                </span>
+                <span className="text-xs font-bold text-foreground">{profile.nama_lengkap}</span>
+                <Badge
+                  variant={roleBadgeVariant[role] ?? 'outline'}
+                  className="h-[20px] px-2 text-[10px] font-bold uppercase tracking-wide"
+                >
+                  {ROLE_LABEL[role] ?? role}
+                </Badge>
               </div>
-              <div className="text-[11px] text-slate-500 flex items-center justify-end gap-2 mt-0.5">
-                <span className="font-mono font-medium text-slate-600">{profile.nik_karyawan}</span>
-                <span>·</span>
-                <span className="font-medium text-slate-700">{namaDivisi}</span>
-                {profile.jabatan && (
+              <div className="mt-0.5 flex items-center justify-end gap-1.5 text-[11px] font-medium text-muted-foreground">
+                <span className="font-mono">{profile.nik_karyawan}</span>
+                <span aria-hidden="true" className="size-1 rounded-full bg-border" />
+                <span>{namaDivisi}</span>
+                {profile.jabatan ? (
                   <>
-                    <span>·</span>
-                    <span className="text-slate-500">{profile.jabatan}</span>
+                    <span aria-hidden="true" className="size-1 rounded-full bg-border" />
+                    <span className="max-w-32 truncate">{profile.jabatan}</span>
                   </>
-                )}
+                ) : null}
               </div>
             </div>
 
-            {/* Logout Action Button */}
             <form action={signOutAction}>
-              <button
+              <Button
                 type="submit"
+                variant="outline"
+                size="sm"
+                className="clay-button cursor-pointer gap-1.5 text-xs text-muted-foreground hover:text-destructive"
                 title="Keluar dari akun"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut aria-hidden="true" className="size-3.5" />
                 <span className="hidden sm:inline">Keluar</span>
-              </button>
+              </Button>
             </form>
           </div>
         </header>
 
-        {/* Page Children Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        {/* Isi halaman */}
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 pb-12 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
           {children}
         </main>
       </div>

@@ -1,26 +1,937 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-heading);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Elevasi clay: drop shadow lembut + cahaya di atas + bayangan dalam di bawah. */
+@theme {
+  --shadow-soft:
+    0 22px 38px -22px rgba(54, 38, 92, 0.32),
+    0 9px 18px -13px rgba(54, 38, 92, 0.18),
+    inset 0 8px 16px rgba(255, 255, 255, 0.62),
+    inset 0 -8px 16px rgba(54, 38, 92, 0.11);
+  --shadow-lift:
+    0 28px 46px -22px rgba(54, 38, 92, 0.36),
+    0 12px 22px -14px rgba(54, 38, 92, 0.22),
+    inset 0 9px 16px rgba(255, 255, 255, 0.58),
+    inset 0 -12px 20px rgba(54, 38, 92, 0.16);
+}
+
+:root {
+  --background: #f7f2fb;
+  --foreground: #1b2437;
+  --card: #fffaf2;
+  --card-foreground: #1b2437;
+  --popover: #fffaf2;
+  --popover-foreground: #1b2437;
+  --primary: #0a6650;
+  --primary-foreground: #ffffff;
+  --secondary: #f1e9ff;
+  --secondary-foreground: #2f2545;
+  --muted: #f0eafa;
+  --muted-foreground: #4b5268;
+  --accent: #f1e9ff;
+  --accent-foreground: #2f2545;
+  --destructive: #b4233c;
+  --info: #1d5f8f;
+  --info-foreground: #ffffff;
+  --border: #e6ddf3;
+  --input: #e1d6f0;
+  --ring: #0a6650;
+  --chart-1: #178f6c;
+  --chart-2: #d99a0b;
+  --chart-3: #c2760f;
+  --chart-4: #6d5bd0;
+  --chart-5: #6b4a00;
+  --radius: 1rem;
+  --sidebar: #efe8ff;
+  --sidebar-foreground: #2b2440;
+  --sidebar-primary: #0a6650;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e1d6f8;
+  --sidebar-accent-foreground: #241d38;
+  --sidebar-border: rgba(91, 70, 140, 0.12);
+  --sidebar-ring: #0a6650;
+  --canvas-glow-primary: rgba(198, 245, 226, 0.7);
+  --canvas-glow-warm: rgba(255, 205, 226, 0.6);
+
+  /* Resep clay yang dipakai lintas komponen. */
+  --clay-ink: #1b2437;
+  --clay-shadow:
+    0 24px 40px -22px rgba(54, 38, 92, 0.34),
+    0 10px 20px -14px rgba(54, 38, 92, 0.2),
+    inset 0 9px 17px rgba(255, 255, 255, 0.68),
+    inset 0 -9px 17px rgba(54, 38, 92, 0.12);
+  --clay-shadow-sm:
+    0 16px 26px -18px rgba(54, 38, 92, 0.3),
+    0 6px 12px -10px rgba(54, 38, 92, 0.16),
+    inset 0 5px 10px rgba(255, 255, 255, 0.58),
+    inset 0 -5px 10px rgba(54, 38, 92, 0.09);
+  --clay-shadow-hover:
+    0 30px 48px -24px rgba(54, 38, 92, 0.38),
+    0 14px 24px -15px rgba(54, 38, 92, 0.24),
+    inset 0 9px 17px rgba(255, 255, 255, 0.62),
+    inset 0 -13px 22px rgba(54, 38, 92, 0.17);
+  --clay-button:
+    0 10px 18px -12px rgba(54, 38, 92, 0.35),
+    inset 0 4px 7px rgba(255, 255, 255, 0.55),
+    inset 0 -5px 9px rgba(54, 38, 92, 0.16);
+  --clay-button-hover:
+    0 16px 26px -14px rgba(54, 38, 92, 0.42),
+    inset 0 5px 9px rgba(255, 255, 255, 0.5),
+    inset 0 -9px 14px rgba(54, 38, 92, 0.22);
+  --clay-button-pressed:
+    0 4px 10px -8px rgba(54, 38, 92, 0.3),
+    inset 0 8px 14px rgba(54, 38, 92, 0.22),
+    inset 0 -3px 6px rgba(255, 255, 255, 0.35);
+  --clay-inset:
+    inset 0 5px 10px rgba(54, 38, 92, 0.08),
+    inset 0 -4px 8px rgba(255, 255, 255, 0.72);
+  --clay-field-inset:
+    inset 0 3px 7px rgba(54, 38, 92, 0.1),
+    inset 0 -3px 6px rgba(255, 255, 255, 0.9);
+}
+
+.dark {
+  --background: oklch(0.158 0.006 107.1);
+  --foreground: oklch(0.975 0.004 106.5);
+  --card: oklch(0.212 0.011 107.4);
+  --card-foreground: oklch(0.975 0.004 106.5);
+  --popover: oklch(0.212 0.011 107.4);
+  --popover-foreground: oklch(0.975 0.004 106.5);
+  --primary: oklch(0.735 0.125 165.6);
+  --primary-foreground: oklch(0.205 0.035 166.9);
+  --secondary: oklch(0.272 0.008 286);
+  --secondary-foreground: oklch(0.975 0 0);
+  --muted: oklch(0.272 0.012 107.4);
+  --muted-foreground: oklch(0.745 0.018 106.9);
+  --accent: oklch(0.272 0.012 107.4);
+  --accent-foreground: oklch(0.975 0.004 106.5);
+  --destructive: oklch(0.704 0.191 22.216);
+  --info: oklch(0.76 0.12 256);
+  --info-foreground: oklch(0.18 0.03 256);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.735 0.125 165.6);
+  --chart-1: oklch(0.735 0.125 165.6);
+  --chart-2: oklch(0.8 0.17 78);
+  --chart-3: oklch(0.72 0.16 58);
+  --chart-4: oklch(0.64 0.15 48);
+  --chart-5: oklch(0.58 0.14 40);
+  --sidebar: oklch(0.185 0.008 107.1);
+  --sidebar-foreground: oklch(0.975 0.004 106.5);
+  --sidebar-primary: oklch(0.735 0.125 165.6);
+  --sidebar-primary-foreground: oklch(0.205 0.035 166.9);
+  --sidebar-accent: oklch(0.272 0.012 107.4);
+  --sidebar-accent-foreground: oklch(0.975 0.004 106.5);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.735 0.125 165.6);
+  --canvas-glow-primary: oklch(0.735 0.125 165.6 / 10%);
+  --canvas-glow-warm: oklch(0.8 0.17 78 / 6%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-weight: 500;
+    text-rendering: optimizeLegibility;
+    background-image:
+      radial-gradient(70rem 45rem at 100% -15%, var(--canvas-glow-primary), transparent 55%),
+      radial-gradient(55rem 40rem at -10% 110%, var(--canvas-glow-warm), transparent 55%);
+    background-attachment: fixed;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading tracking-tight;
+  }
+  ::selection {
+    background-color: color-mix(in srgb, var(--primary) 26%, transparent);
+  }
+  /* Fokus keyboard yang konsisten; spesifisitas rendah agar utility bisa menimpa. */
+  :where(a, button, [role='button'], input, select, textarea, summary):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 }
 
-body {
-  background: var(--background);
+/* =========================================================================
+   CLAYMORPHISM SURFACE
+   Aturan di bawah sengaja tidak dimasukkan ke @layer agar dapat
+   menyelaraskan utility Tailwind yang sudah tersebar di seluruh halaman.
+   ========================================================================= */
+
+.clay-app {
+  min-height: 100vh;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 500;
+  background-color: #f6f1fb;
+  background-image:
+    radial-gradient(58rem 42rem at 4% -12%, rgba(255, 205, 226, 0.62), transparent 60%),
+    radial-gradient(52rem 38rem at 102% -6%, rgba(198, 232, 255, 0.68), transparent 58%),
+    radial-gradient(56rem 44rem at 52% 112%, rgba(198, 245, 226, 0.72), transparent 60%),
+    linear-gradient(140deg, #fbf5ff 0%, #f5f6ff 42%, #fff9f0 100%);
+  background-attachment: fixed;
+}
+
+/* Tipografi chunky: Nunito Sans tebal untuk judul, angka, dan label besar. */
+.clay-app h1,
+.clay-app h2,
+.clay-app h3,
+.clay-app h4,
+.clay-app .font-heading {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.clay-app h1 {
+  line-height: 1.08;
+}
+
+/* Kartu clay dengan warna sendiri; warna latar diberikan oleh aksen komponen. */
+.clay-card {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 1.75rem;
+  box-shadow: var(--clay-shadow);
+  transition:
+    box-shadow 220ms ease,
+    transform 220ms ease;
+}
+
+.clay-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--clay-shadow-hover);
+}
+
+.clay-inset {
+  border-radius: 1.25rem;
+  background-color: rgba(255, 255, 255, 0.42);
+  box-shadow: var(--clay-inset);
+}
+
+.clay-tile {
+  box-shadow:
+    0 7px 12px -8px rgba(54, 38, 92, 0.3),
+    inset 0 4px 7px rgba(255, 255, 255, 0.66),
+    inset 0 -5px 9px rgba(54, 38, 92, 0.14);
+}
+
+.clay-pill {
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.55),
+    inset 0 -2px 4px rgba(54, 38, 92, 0.08);
+}
+
+.clay-chip {
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.62),
+    inset 0 -3px 6px rgba(54, 38, 92, 0.09),
+    0 5px 10px -8px rgba(54, 38, 92, 0.25);
+}
+
+/* Panel navigasi dan topbar yang mengapung di atas kanvas pastel. */
+.clay-sidebar {
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  background: linear-gradient(180deg, #f3edff 0%, #ece4ff 58%, #e8f7ef 100%);
+  box-shadow: var(--clay-shadow);
+}
+
+.clay-topbar {
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 1.75rem;
+  background: rgba(255, 249, 240, 0.88);
+  box-shadow: var(--clay-shadow);
+  backdrop-filter: blur(14px);
+}
+
+.clay-popover {
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 1.5rem;
+  background-color: #fffaf2;
+  box-shadow:
+    0 28px 48px -24px rgba(54, 38, 92, 0.38),
+    0 12px 24px -16px rgba(54, 38, 92, 0.2),
+    inset 0 6px 12px rgba(255, 255, 255, 0.6),
+    inset 0 -6px 12px rgba(54, 38, 92, 0.08);
+}
+
+/* Dialog mengikuti bahasa visual kartu clay. */
+.clay-app [role="dialog"] {
+  border-radius: 1.75rem !important;
+  box-shadow: var(--clay-shadow) !important;
+}
+
+/* Kartu generik yang masih memakai utility bg-card di halaman. */
+.clay-app :is(div, section, article, aside, form, header, footer)[class~="bg-card"]:not(.clay-card) {
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 1.5rem;
+  box-shadow: var(--clay-shadow-sm);
+}
+
+/* Panel inset (filter, item daftar, area ringkasan) tetap terasa lembut. */
+.clay-app :is(div, section, article, li)[class~="bg-muted/10"],
+.clay-app :is(div, section, article, li)[class~="bg-muted/20"],
+.clay-app :is(div, section, article, li)[class~="bg-muted/30"],
+.clay-app :is(div, section, article, li)[class~="bg-muted/40"],
+.clay-app :is(div, section, article, li)[class~="bg-muted/50"] {
+  border-radius: 1.25rem;
+  box-shadow:
+    inset 0 4px 9px rgba(54, 38, 92, 0.06),
+    inset 0 -4px 8px rgba(255, 255, 255, 0.55);
+}
+
+/* Tombol clay: dua inner shadow + drop shadow, hover memperdalam inner. */
+.clay-app button:not(.fixed),
+.clay-app [data-slot="button"],
+.clay-app a[class~="inline-flex"][class~="h-8"],
+.clay-app a[class~="inline-flex"][class~="h-9"],
+.clay-app a[class~="inline-flex"][class~="h-10"],
+.clay-app a[class~="inline-flex"][class~="h-11"],
+.clay-app a[class~="inline-flex"][class~="h-12"] {
+  border-radius: 1rem;
+  box-shadow: var(--clay-button);
+  transition:
+    box-shadow 180ms ease,
+    transform 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.clay-app button:not(.fixed):not(:disabled):hover,
+.clay-app [data-slot="button"]:not(:disabled):hover,
+.clay-app a[class~="inline-flex"][class~="h-8"]:hover,
+.clay-app a[class~="inline-flex"][class~="h-9"]:hover,
+.clay-app a[class~="inline-flex"][class~="h-10"]:hover,
+.clay-app a[class~="inline-flex"][class~="h-11"]:hover,
+.clay-app a[class~="inline-flex"][class~="h-12"]:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--clay-button-hover);
+}
+
+.clay-app button:not(.fixed):not(:disabled):active,
+.clay-app [data-slot="button"]:not(:disabled):active,
+.clay-app a[class~="inline-flex"][class~="h-8"]:active,
+.clay-app a[class~="inline-flex"][class~="h-9"]:active,
+.clay-app a[class~="inline-flex"][class~="h-10"]:active,
+.clay-app a[class~="inline-flex"][class~="h-11"]:active,
+.clay-app a[class~="inline-flex"][class~="h-12"]:active {
+  transform: translateY(2px) scale(0.99);
+  box-shadow: var(--clay-button-pressed);
+}
+
+.clay-app button,
+.clay-app [data-slot="button"],
+.clay-app a[class~="inline-flex"][class~="h-8"],
+.clay-app a[class~="inline-flex"][class~="h-9"],
+.clay-app a[class~="inline-flex"][class~="h-10"],
+.clay-app a[class~="inline-flex"][class~="h-11"],
+.clay-app a[class~="inline-flex"][class~="h-12"] {
+  font-weight: 700;
+}
+
+/* Kontrol form clay: cekung, radius besar, dan fokus yang jelas. */
+.clay-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]),
+.clay-app select,
+.clay-app textarea {
+  min-height: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 1.05rem;
+  background-color: #fffaf2;
+  color: var(--foreground);
+  box-shadow: var(--clay-field-inset);
+  transition:
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.clay-app textarea {
+  min-height: 6rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.clay-app input:hover:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]),
+.clay-app select:hover,
+.clay-app textarea:hover {
+  border-color: rgba(15, 122, 95, 0.28);
+}
+
+.clay-app input::placeholder,
+.clay-app textarea::placeholder {
+  color: #5b6478;
+  opacity: 1;
+}
+
+.clay-app select option {
+  background-color: #fffaf2;
+  color: var(--foreground);
+}
+
+.clay-app input[type="checkbox"],
+.clay-app input[type="radio"] {
+  accent-color: var(--primary);
+}
+
+/* Navigasi sidebar clay. */
+.clay-nav-link {
+  border-radius: 1rem;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.clay-nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.52);
+  box-shadow:
+    inset 0 3px 7px rgba(255, 255, 255, 0.62),
+    inset 0 -3px 7px rgba(54, 38, 92, 0.07);
+}
+
+.clay-nav-link:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 5px 9px rgba(54, 38, 92, 0.11),
+    inset 0 -3px 7px rgba(255, 255, 255, 0.5);
+}
+
+.clay-nav-link[aria-current="page"] {
+  background-color: #d8f5e7;
+  color: #0b5b45;
+  box-shadow:
+    0 8px 14px -10px rgba(54, 38, 92, 0.28),
+    inset 0 5px 9px rgba(255, 255, 255, 0.66),
+    inset 0 -6px 11px rgba(54, 38, 92, 0.12);
+}
+
+.clay-app [data-slot="badge"] {
+  border-radius: 999px;
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.55),
+    inset 0 -2px 4px rgba(54, 38, 92, 0.08);
+}
+
+/* Radius pil dipertahankan meskipun kontrol memakai radius clay. */
+.clay-app [class~="rounded-full"] {
+  border-radius: 999px;
+}
+
+/* Tabel tetap rapi di atas permukaan pastel. */
+.clay-app table {
+  font-variant-numeric: tabular-nums;
+}
+
+.clay-app thead th {
+  color: #555d72;
+  font-weight: 700;
+}
+
+/* Legenda Recharts bisa membungkus rapi di layar sempit. */
+.recharts-default-legend {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 6px;
+}
+
+.recharts-legend-item {
+  margin-right: 0 !important;
+}
+
+.recharts-legend-item-text {
+  color: var(--muted-foreground) !important;
+  font-weight: 600 !important;
+}
+
+/* Fokus keyboard global: cincin tebal dan selalu terlihat. */
+.clay-app :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible,
+.clay-popover :where(button, a, [tabindex]):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ring) 58%, transparent);
+  outline-offset: 2px;
+}
+
+/* Hormati preferensi pengguna yang mematikan animasi. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =========================================================================
+   GRADIENT ABLE BENTO DASHBOARD (HRD)
+   Palet biru-mint-amber-coral diadaptasi dari Gradient Able, dengan
+   permukaan putih, bayangan tipis, dan radius yang tetap selaras dengan app.
+   ========================================================================= */
+
+.gradient-dashboard {
+  --dash-blue: #1f6fd0;
+  --dash-blue-bright: #4099ff;
+  --dash-ink: #162033;
+  --dash-muted: #64748b;
+  --dash-border: #e5edf7;
+  --dash-surface: #ffffff;
+  color: var(--dash-ink);
+}
+
+.gradient-dashboard h1,
+.gradient-dashboard h2,
+.gradient-dashboard h3,
+.gradient-dashboard .font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.025em;
+}
+
+.dash-card {
+  border: 1px solid var(--dash-border);
+  border-radius: 1.5rem;
+  background: var(--dash-surface);
+  box-shadow:
+    0 18px 40px -30px rgba(31, 76, 133, 0.35),
+    0 4px 12px -8px rgba(31, 76, 133, 0.1);
+}
+
+.dash-hero {
+  border-radius: 1.75rem;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(115, 180, 255, 0.32), transparent 34%),
+    linear-gradient(135deg, #123a72 0%, #174f9b 52%, #1f6fd0 100%);
+  box-shadow:
+    0 28px 50px -34px rgba(18, 58, 114, 0.7),
+    0 8px 22px -16px rgba(18, 58, 114, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.dash-hero-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 42%, #000 100%);
+  opacity: 0.65;
+}
+
+.dash-hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.dash-hero-title {
+  color: #ffffff;
+  font-family: var(--font-heading);
+  font-size: clamp(1.85rem, 3.4vw, 2.8rem);
+  font-weight: 800;
+  line-height: 1.03;
+  letter-spacing: -0.045em;
+}
+
+.dash-hero-metric {
+  display: flex;
+  min-width: 7.25rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.09);
+  padding: 0.55rem 0.75rem;
+  backdrop-filter: blur(6px);
+}
+
+.dash-hero-metric strong {
+  color: #ffffff;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-hero-metric span {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.self-attendance-panel {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 1.25rem;
+  background: rgba(7, 31, 63, 0.36);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 18px 32px -24px rgba(0, 0, 0, 0.65);
+  padding: 1rem 1.1rem;
+  backdrop-filter: blur(14px);
+}
+
+.dash-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--dash-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.dash-card-title {
+  color: var(--dash-ink);
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.dash-card-description {
+  margin-top: 0.15rem;
+  color: var(--dash-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.dash-icon-tile {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 0.85rem;
+}
+
+.dash-kpi {
+  color: var(--dash-ink);
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 3.8vw, 2.85rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.055em;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-live-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  background: #eef7ff;
+  padding: 0.35rem 0.65rem;
+  color: #1f6fd0;
+  font-size: 0.625rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dash-soft-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  padding: 0.28rem 0.55rem;
+  color: #475569;
+  font-size: 0.625rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dash-count-badge {
+  display: inline-flex;
+  min-width: 1.65rem;
+  height: 1.65rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #f8dfb3;
+  border-radius: 999px;
+  background: #fff4df;
+  padding: 0 0.4rem;
+  color: #8a4b00;
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-inline-link {
+  color: #1f6fd0;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.dash-inline-link:hover {
+  color: #164a8f;
+}
+
+.dash-mini-stat {
+  border: 1px solid #eaf1f9;
+  border-radius: 0.9rem;
+  background: #f8fbfe;
+  padding: 0.6rem 0.7rem;
+}
+
+.dash-mini-stat-value {
+  color: var(--dash-ink);
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-mini-stat-label {
+  margin-top: 0.2rem;
+  color: var(--dash-muted);
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.dash-leave-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(46, 216, 182, 0.18), transparent 34%),
+    linear-gradient(135deg, #083f32 0%, #0b5c48 52%, #0e6f56 100%);
+}
+
+.live-dot {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #2ed8b6;
+  box-shadow: 0 0 0 4px rgba(46, 216, 182, 0.14);
+}
+
+.live-dot-dark {
+  background: #1f6fd0;
+  box-shadow: 0 0 0 4px rgba(31, 111, 208, 0.12);
+}
+
+/* Reset clay chrome di dalam dashboard, lalu pasang kontrol versi Gradient Able. */
+.clay-app .gradient-dashboard button,
+.clay-app .gradient-dashboard a[class~='inline-flex'] {
+  border-radius: 0.8rem;
+  box-shadow: none;
+}
+
+.clay-app .gradient-dashboard button:not(.fixed):not(:disabled):hover,
+.clay-app .gradient-dashboard a[class~='inline-flex']:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.clay-app .gradient-dashboard button:not(.fixed):not(:disabled):active {
+  box-shadow: none;
+  transform: translateY(1px);
+}
+
+.clay-app .gradient-dashboard textarea {
+  border: 1px solid #f0cbd2;
+  border-radius: 0.8rem;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.clay-app .gradient-dashboard .dash-hero-btn-primary {
+  display: inline-flex;
+  height: 2.3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 0.8rem;
+  background: #ffffff;
+  padding: 0 0.9rem;
+  color: #164a8f;
+  font-size: 0.72rem;
+  font-weight: 800;
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+.clay-app .gradient-dashboard .dash-hero-btn-primary:hover:not(:disabled) {
+  background: #eef7ff;
+  transform: translateY(-1px);
+}
+
+.clay-app .gradient-dashboard .dash-hero-btn-primary:disabled {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.78);
+  opacity: 1;
+}
+
+.clay-app .gradient-dashboard .dash-approve-btn,
+.clay-app .gradient-dashboard .dash-reject-btn,
+.clay-app .gradient-dashboard .dash-cancel-btn,
+.clay-app .gradient-dashboard .dash-confirm-reject-btn {
+  display: inline-flex;
+  height: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border-radius: 0.65rem;
+  padding: 0 0.65rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease;
+}
+
+.clay-app .gradient-dashboard .dash-approve-btn {
+  border: 1px solid #0d7a5f;
+  background: #0d7a5f;
+  color: #ffffff;
+}
+
+.clay-app .gradient-dashboard .dash-approve-btn:hover:not(:disabled) {
+  background: #0a6650;
+}
+
+.clay-app .gradient-dashboard .dash-reject-btn {
+  border: 1px solid #f0cbd2;
+  background: #fff7f8;
+  color: #b4233c;
+}
+
+.clay-app .gradient-dashboard .dash-reject-btn:hover:not(:disabled) {
+  background: #ffeef1;
+}
+
+.clay-app .gradient-dashboard .dash-cancel-btn {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+}
+
+.clay-app .gradient-dashboard .dash-cancel-btn:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.clay-app .gradient-dashboard .dash-confirm-reject-btn {
+  border: 1px solid #b4233c;
+  background: #b4233c;
+  color: #ffffff;
+}
+
+.clay-app .gradient-dashboard .dash-confirm-reject-btn:hover:not(:disabled) {
+  background: #931b31;
+}
+
+.clay-app .gradient-dashboard .dash-approve-btn:disabled,
+.clay-app .gradient-dashboard .dash-reject-btn:disabled,
+.clay-app .gradient-dashboard .dash-cancel-btn:disabled,
+.clay-app .gradient-dashboard .dash-confirm-reject-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.clay-app .gradient-dashboard .dash-reject-textarea {
+  display: block;
+  width: 100%;
+  min-height: 4.6rem;
+  padding: 0.55rem 0.65rem;
+  color: #162033;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.clay-app .gradient-dashboard .dash-reject-textarea::placeholder {
+  color: #64748b;
+}
+
+.clay-app .gradient-dashboard .dash-reject-textarea:focus-visible {
+  outline: 3px solid rgba(180, 35, 60, 0.35);
+  outline-offset: 1px;
+}
+
+@media (max-width: 640px) {
+  .dash-hero-title {
+    font-size: 1.8rem;
+  }
+
+  .dash-hero-metric {
+    min-width: 0;
+    flex: 1 1 7rem;
+  }
+
+  .self-attendance-panel {
+    padding: 0.9rem 1rem;
+  }
 }
