@@ -47,10 +47,16 @@ export async function updateSession(request: NextRequest) {
   const isLoginPage = pathname === '/login';
   const isAuthCallback = pathname.startsWith('/auth');
   const isApiRoute = pathname.startsWith('/api');
+  const isPublicFile =
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/favicon.ico' ||
+    pathname.endsWith('.txt') ||
+    pathname.endsWith('.xml');
 
   // 1. Jika belum login dan mencoba mengakses rute terproteksi -> redirect paksa ke /login
   // Abaikan rute API agar mengembalikan respon JSON 401, bukan HTML redirect
-  if (!user && !isLoginPage && !isAuthCallback && !isApiRoute) {
+  if (!user && !isLoginPage && !isAuthCallback && !isApiRoute && !isPublicFile) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
