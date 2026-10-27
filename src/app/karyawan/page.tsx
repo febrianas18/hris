@@ -21,21 +21,57 @@ export default async function DataKaryawanPage() {
   const supabase = await createClient();
   const currentYear = parseInt(getServerTimeWIB().dateStr.slice(0, 4), 10);
 
-  // 1. Daftar divisi + manajer aktif.
-  const { data: rawDivisions } = await supabase
-    .from('divisi')
-    .select(
-      `
-      id,
-      nama,
-      manajer_id,
-      manajer:manajer_id (
+  // Ambil data divisi, seluruh data profil karyawan, dan kuota cuti secara paralel
+  const [
+    { data: rawDivisions },
+    { data: rawProfiles, error: profileErr },
+    { data: rawQuotas },
+  ] = await Promise.all([
+    supabase
+      .from('divisi')
+      .select(
+        `
         id,
-        nama_lengkap
+        nama,
+        manajer_id,
+        manajer:manajer_id (
+          id,
+          nama_lengkap
+        )
+      `
       )
-    `
-    )
-    .order('nama', { ascending: true });
+      .order('nama', { ascending: true }),
+    supabase
+      .from('profiles')
+      .select(
+        `
+        id,
+        nik_karyawan,
+        nama_lengkap,
+        email,
+        nomor_hp,
+        peran,
+        jabatan,
+        status_kerja,
+        tanggal_masuk,
+        aktif,
+        divisi_id,
+        divisi:divisi_id (
+          id,
+          nama
+        )
+      `
+      )
+      .order('nama_lengkap', { ascending: true }),
+    supabase
+      .from('kuota_cuti')
+      .select('karyawan_id, tahun, jatah_hari, terpakai_hari')
+      .eq('tahun', currentYear),
+  ]);
+
+  if (profileErr) {
+    throw new Error(`Gagal memuat data karyawan: ${profileErr.message}`);
+  }
 
   type DivisiRow = {
     id: string;
@@ -59,36 +95,6 @@ export default async function DataKaryawanPage() {
     })
   );
 
-  // 2. Daftar karyawan. RLS membatasi Atasan ke divisinya sendiri.
-  const { data: rawProfiles, error: profileErr } = await supabase
-    .from('profiles')
-    .select(
-      `
-      id,
-      nik_karyawan,
-      nama_lengkap,
-      email,
-      nomor_hp,
-      peran,
-      jabatan,
-      status_kerja,
-      tanggal_masuk,
-      aktif,
-      divisi_id,
-      divisi:divisi_id (
-        id,
-        nama
-      )
-    `
-    )
-    .order('nama_lengkap', { ascending: true });
-
-  if (profileErr) {
-    throw new Error(`Gagal memuat data karyawan: ${profileErr.message}`);
-  }
-
-  const ids = (rawProfiles ?? []).map((p) => p.id);
-
   type ProfileRow = {
     id: string;
     nik_karyawan: string;
@@ -106,15 +112,6 @@ export default async function DataKaryawanPage() {
       | Array<{ id: string; nama: string }>
       | null;
   };
-
-  const { data: rawQuotas } =
-    ids.length > 0
-      ? await supabase
-          .from('kuota_cuti')
-          .select('karyawan_id, tahun, jatah_hari, terpakai_hari')
-          .eq('tahun', currentYear)
-          .in('karyawan_id', ids)
-      : { data: [] as Array<{ karyawan_id: string; tahun: number; jatah_hari: number; terpakai_hari: number }> };
 
   const quotaByEmployee = new Map(
     (rawQuotas ?? []).map((q) => [

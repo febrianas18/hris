@@ -11,18 +11,7 @@ export default async function AbsensiPage() {
   const supabase = await createClient();
   const serverTime = getServerTimeWIB();
 
-  // 1. Ambil data divisi untuk dropdown filter
-  const { data: divisionsData } = await supabase
-    .from('divisi')
-    .select('id, nama')
-    .order('nama');
-
-  const divisions = (divisionsData || []).map((d) => ({
-    id: d.id,
-    nama: d.nama,
-  }));
-
-  // 2. Ambil pool profil karyawan sesuai peran
+  // Siapkan kueri profil karyawan sesuai peran
   let profilesQuery = supabase
     .from('profiles')
     .select(`
@@ -45,7 +34,43 @@ export default async function AbsensiPage() {
     profilesQuery = profilesQuery.eq('id', profile.id);
   }
 
-  const { data: profilesData } = await profilesQuery;
+  // Ambil data divisi, profiles, dan absensi secara paralel untuk kecepatan loading maksimal
+  const [
+    { data: divisionsData },
+    { data: profilesData },
+    { data: absensiData },
+  ] = await Promise.all([
+    supabase.from('divisi').select('id, nama').order('nama'),
+    profilesQuery,
+    supabase
+      .from('absensi')
+      .select(`
+        id,
+        karyawan_id,
+        tanggal,
+        jam_masuk,
+        jam_pulang,
+        status,
+        dikoreksi_oleh,
+        alasan_koreksi,
+        karyawan:karyawan_id (
+          id,
+          nik_karyawan,
+          nama_lengkap,
+          jabatan,
+          divisi:divisi_id (
+            id,
+            nama
+          )
+        )
+      `)
+      .order('tanggal', { ascending: false }),
+  ]);
+
+  const divisions = (divisionsData || []).map((d) => ({
+    id: d.id,
+    nama: d.nama,
+  }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const allProfiles = (profilesData || []).map((p: any) => ({
@@ -56,31 +81,6 @@ export default async function AbsensiPage() {
     divisi_id: p.divisi_id,
     divisi: p.divisi ? { id: p.divisi.id, nama: p.divisi.nama } : null,
   }));
-
-  // 3. Ambil data absensi
-  const { data: absensiData } = await supabase
-    .from('absensi')
-    .select(`
-      id,
-      karyawan_id,
-      tanggal,
-      jam_masuk,
-      jam_pulang,
-      status,
-      dikoreksi_oleh,
-      alasan_koreksi,
-      karyawan:karyawan_id (
-        id,
-        nik_karyawan,
-        nama_lengkap,
-        jabatan,
-        divisi:divisi_id (
-          id,
-          nama
-        )
-      )
-    `)
-    .order('tanggal', { ascending: false });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const initialRecords: AbsensiRecord[] = (absensiData || []).map((r: any) => ({

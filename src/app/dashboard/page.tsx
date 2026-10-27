@@ -59,36 +59,46 @@ export default async function DashboardPage(props: DashboardProps) {
   // =========================================================================
   // 1. DATA PRIBADI KARYAWAN (BASELINE UNTUK SEMUA PERAN - WIREFRAME HAL. 1)
   // =========================================================================
-
-  // 1.1 Lima riwayat absensi terakhir
-  const { data: recentAttendance } = await supabase
-    .from('absensi')
-    .select('id, tanggal, jam_masuk, jam_pulang, status')
-    .eq('karyawan_id', profile.id)
-    .order('tanggal', { ascending: false })
-    .limit(5);
-
-  // 1.2 Kuota cuti tahunan berjalan
   const currentYear = parseInt(todayStr.slice(0, 4), 10);
-  const { data: kuotaCuti } = await supabase
-    .from('kuota_cuti')
-    .select('jatah_hari, terpakai_hari')
-    .eq('karyawan_id', profile.id)
-    .eq('tahun', currentYear)
-    .maybeSingle();
+  const currentMonthPrefix = todayStr.slice(0, 7);
+
+  // Kueri database baseline secara paralel untuk kecepatan loading maksimal
+  const [
+    { data: recentAttendance },
+    { data: kuotaCuti },
+    { data: monthAttendance },
+    { data: latestLeave },
+  ] = await Promise.all([
+    supabase
+      .from('absensi')
+      .select('id, tanggal, jam_masuk, jam_pulang, status')
+      .eq('karyawan_id', profile.id)
+      .order('tanggal', { ascending: false })
+      .limit(5),
+    supabase
+      .from('kuota_cuti')
+      .select('jatah_hari, terpakai_hari')
+      .eq('karyawan_id', profile.id)
+      .eq('tahun', currentYear)
+      .maybeSingle(),
+    supabase
+      .from('absensi')
+      .select('status')
+      .eq('karyawan_id', profile.id)
+      .gte('tanggal', `${currentMonthPrefix}-01`)
+      .lte('tanggal', `${currentMonthPrefix}-31`),
+    supabase
+      .from('pengajuan_cuti')
+      .select('id, jenis, tanggal_mulai, tanggal_selesai, jumlah_hari, status, dibuat_pada')
+      .eq('karyawan_id', profile.id)
+      .order('dibuat_pada', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   const jatahHari = kuotaCuti?.jatah_hari ?? 12;
   const terpakaiHari = kuotaCuti?.terpakai_hari ?? 0;
   const sisaCuti = Math.max(0, jatahHari - terpakaiHari);
-
-  // 1.3 Kehadiran bulan ini
-  const currentMonthPrefix = todayStr.slice(0, 7);
-  const { data: monthAttendance } = await supabase
-    .from('absensi')
-    .select('status')
-    .eq('karyawan_id', profile.id)
-    .gte('tanggal', `${currentMonthPrefix}-01`)
-    .lte('tanggal', `${currentMonthPrefix}-31`);
 
   let countTepatWaktu = 0;
   let countTerlambat = 0;
@@ -97,15 +107,6 @@ export default async function DashboardPage(props: DashboardProps) {
     else if (item.status === 'terlambat') countTerlambat++;
   });
   const totalHariHadir = countTepatWaktu + countTerlambat;
-
-  // 1.4 Status pengajuan cuti/izin terakhir
-  const { data: latestLeave } = await supabase
-    .from('pengajuan_cuti')
-    .select('id, jenis, tanggal_mulai, tanggal_selesai, jumlah_hari, status, dibuat_pada')
-    .eq('karyawan_id', profile.id)
-    .order('dibuat_pada', { ascending: false })
-    .limit(1)
-    .maybeSingle();
 
   // =========================================================================
   // 2. DATA KHUSUS ATASAN: TIM DIVISI & PENGAJUAN MENUNGGU
@@ -131,34 +132,34 @@ export default async function DashboardPage(props: DashboardProps) {
     const memberIds = teamMembers.map((m) => m.id);
 
     if (memberIds.length > 0) {
-      // Absensi anggota tim hari ini
-      const { data: attToday } = await supabase
-        .from('absensi')
-        .select('karyawan_id, jam_masuk, jam_pulang, status')
-        .in('karyawan_id', memberIds)
-        .eq('tanggal', todayStr);
+      // Absensi anggota tim hari ini, Cuti tim yang aktif hari ini, dan Pengajuan cuti tim menunggu Atasan
+      const [
+        { data: attToday },
+        { data: leavesToday },
+        { count },
+      ] = await Promise.all([
+        supabase
+          .from('absensi')
+          .select('karyawan_id, jam_masuk, jam_pulang, status')
+          .in('karyawan_id', memberIds)
+          .eq('tanggal', todayStr),
+        supabase
+          .from('pengajuan_cuti')
+          .select('karyawan_id, jenis, tanggal_mulai, tanggal_selesai')
+          .in('karyawan_id', memberIds)
+          .eq('status', 'disetujui')
+          .lte('tanggal_mulai', todayStr)
+          .gte('tanggal_selesai', todayStr),
+        supabase
+          .from('pengajuan_cuti')
+          .select('id', { count: 'exact', head: true })
+          .in('karyawan_id', memberIds)
+          .eq('status', 'diajukan')
+          .eq('perlu_atasan', true),
+      ]);
 
       teamAttendanceToday = attToday || [];
-
-      // Cuti tim yang aktif hari ini
-      const { data: leavesToday } = await supabase
-        .from('pengajuan_cuti')
-        .select('karyawan_id, jenis, tanggal_mulai, tanggal_selesai')
-        .in('karyawan_id', memberIds)
-        .eq('status', 'disetujui')
-        .lte('tanggal_mulai', todayStr)
-        .gte('tanggal_selesai', todayStr);
-
       teamLeavesToday = leavesToday || [];
-
-      // Pengajuan cuti tim yang menunggu persetujuan tahap 1 Atasan
-      const { count } = await supabase
-        .from('pengajuan_cuti')
-        .select('id', { count: 'exact', head: true })
-        .in('karyawan_id', memberIds)
-        .eq('status', 'diajukan')
-        .eq('perlu_atasan', true);
-
       atasanPendingCount = count || 0;
     }
   }
@@ -187,12 +188,15 @@ export default async function DashboardPage(props: DashboardProps) {
   let weeklyChartStats: WeeklyAttendanceStat[] = [];
 
   if (role === 'hrd') {
-    // Data inti perusahaan: karyawan aktif, absensi hari ini, dan cuti yang aktif.
+    // Kueri seluruh kebutuhan data HRD sekaligus secara paralel untuk performa maksimal
     const [
       { count: empCount },
       { data: activeProfiles },
       { data: todayAtt },
       { data: todayLeaves },
+      { count: hrdCount, data: pendingQueue },
+      { data: allQuotas },
+      fourWeeksStats,
     ] = await Promise.all([
       supabase
         .from('profiles')
@@ -212,9 +216,38 @@ export default async function DashboardPage(props: DashboardProps) {
         .eq('status', 'disetujui')
         .lte('tanggal_mulai', todayStr)
         .gte('tanggal_selesai', todayStr),
+      supabase
+        .from('pengajuan_cuti')
+        .select(`
+          id,
+          jenis,
+          tanggal_mulai,
+          tanggal_selesai,
+          jumlah_hari,
+          status,
+          dibuat_pada,
+          alasan,
+          profiles:karyawan_id (
+            id,
+            nik_karyawan,
+            nama_lengkap,
+            divisi:divisi_id (
+              nama
+            )
+          )
+        `, { count: 'exact' })
+        .or('status.eq.disetujui_atasan,and(status.eq.diajukan,perlu_atasan.eq.false)')
+        .order('dibuat_pada', { ascending: false })
+        .limit(5),
+      supabase
+        .from('kuota_cuti')
+        .select('karyawan_id, jatah_hari, terpakai_hari')
+        .eq('tahun', currentYear),
+      getFourWeeksAttendanceStats(supabase, todayStr),
     ]);
 
     totalActiveEmployees = empCount || 0;
+    weeklyChartStats = fourWeeksStats;
 
     const activeProfileRows = activeProfiles || [];
     const attendanceByEmployee = new Map<string, string>();
@@ -284,31 +317,6 @@ export default async function DashboardPage(props: DashboardProps) {
       );
     }
 
-    // Pengajuan cuti menunggu keputusan akhir HRD.
-    const { count: hrdCount, data: pendingQueue } = await supabase
-      .from('pengajuan_cuti')
-      .select(`
-        id,
-        jenis,
-        tanggal_mulai,
-        tanggal_selesai,
-        jumlah_hari,
-        status,
-        dibuat_pada,
-        alasan,
-        profiles:karyawan_id (
-          id,
-          nik_karyawan,
-          nama_lengkap,
-          divisi:divisi_id (
-            nama
-          )
-        )
-      `, { count: 'exact' })
-      .or('status.eq.disetujui_atasan,and(status.eq.diajukan,perlu_atasan.eq.false)')
-      .order('dibuat_pada', { ascending: false })
-      .limit(5);
-
     hrdPendingApprovals = hrdCount || 0;
     hrdPendingQueue = (pendingQueue || []).map((item) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -316,9 +324,9 @@ export default async function DashboardPage(props: DashboardProps) {
       const rawProfile = Array.isArray(raw.profiles) ? raw.profiles[0] : raw.profiles;
       const rawDivisi = rawProfile?.divisi
         ? Array.isArray(rawProfile.divisi)
-          ? rawProfile.divisi[0]
-          : rawProfile.divisi
-        : null;
+        ? rawProfile.divisi[0]
+        : rawProfile.divisi
+      : null;
 
       return {
         id: raw.id,
@@ -334,12 +342,6 @@ export default async function DashboardPage(props: DashboardProps) {
         divisi_nama: rawDivisi?.nama || 'Tanpa divisi',
       } satisfies HrdQueueItem;
     });
-
-    // Rekap kuota cuti tahun berjalan untuk karyawan aktif.
-    const { data: allQuotas } = await supabase
-      .from('kuota_cuti')
-      .select('karyawan_id, jatah_hari, terpakai_hari')
-      .eq('tahun', currentYear);
 
     const activeEmployeeIds = new Set(activeProfileRows.map((person) => person.id));
     const relevantQuotas =
@@ -358,9 +360,6 @@ export default async function DashboardPage(props: DashboardProps) {
       avgRemainingQuota =
         Math.round((remainingQuotaDays / relevantQuotas.length) * 10) / 10;
     }
-
-    // Statistik grafik 4 minggu terakhir untuk HRD.
-    weeklyChartStats = await getFourWeeksAttendanceStats(supabase, todayStr);
   }
 
   // Format Helper

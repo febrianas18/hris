@@ -13,32 +13,34 @@ export default async function CutiIzinPage() {
   const serverTime = getServerTimeWIB();
   const currentYear = parseInt(serverTime.dateStr.slice(0, 4), 10);
 
-  // 1. Ambil kuota cuti tahunan berjalan
-  const { data: kuotaData } = await supabase
-    .from('kuota_cuti')
-    .select('tahun, jatah_hari, terpakai_hari')
-    .eq('karyawan_id', profile.id)
-    .eq('tahun', currentYear)
-    .maybeSingle();
-
-  // 2. Ambil seluruh data hari libur resmi
-  const { data: holidaysData } = await supabase
-    .from('hari_libur')
-    .select('tanggal, keterangan, jenis')
-    .order('tanggal');
+  // Ambil kuota cuti tahunan, hari libur resmi, dan riwayat pengajuan secara paralel
+  const [
+    { data: kuotaData },
+    { data: holidaysData },
+    { data: leavesData },
+  ] = await Promise.all([
+    supabase
+      .from('kuota_cuti')
+      .select('tahun, jatah_hari, terpakai_hari')
+      .eq('karyawan_id', profile.id)
+      .eq('tahun', currentYear)
+      .maybeSingle(),
+    supabase
+      .from('hari_libur')
+      .select('tanggal, keterangan, jenis')
+      .order('tanggal'),
+    supabase
+      .from('pengajuan_cuti')
+      .select('*')
+      .eq('karyawan_id', profile.id)
+      .order('dibuat_pada', { ascending: false }),
+  ]);
 
   const holidays: HolidayItem[] = (holidaysData || []).map((h) => ({
     tanggal: h.tanggal,
     keterangan: h.keterangan,
     jenis: h.jenis,
   }));
-
-  // 3. Ambil riwayat pengajuan milik karyawan
-  const { data: leavesData } = await supabase
-    .from('pengajuan_cuti')
-    .select('*')
-    .eq('karyawan_id', profile.id)
-    .order('dibuat_pada', { ascending: false });
 
   const initialLeaves: LeaveRequestRecord[] = (leavesData || []).map((l) => ({
     id: l.id,

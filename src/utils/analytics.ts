@@ -43,21 +43,7 @@ export async function getFourWeeksAttendanceStats(
   supabase: SupabaseClient,
   referenceDateStr: string = '2026-10-20'
 ): Promise<WeeklyAttendanceStat[]> {
-  // 1. Ambil seluruh data hari libur resmi
-  const { data: holidaysData } = await supabase
-    .from('hari_libur')
-    .select('tanggal');
-  const holidaySet = new Set((holidaysData || []).map((h) => h.tanggal));
-
-  // 2. Ambil seluruh karyawan aktif
-  const { data: employees } = await supabase
-    .from('profiles')
-    .select('id, nama_lengkap, tanggal_masuk')
-    .eq('aktif', true);
-
-  const activeEmployees = employees || [];
-
-  // 3. Tentukan 4 rentang minggu kerja (Senin - Jumat) sebelum/hingga tanggal acuan
+  // 1. Tentukan 4 rentang minggu kerja (Senin - Jumat) sebelum/hingga tanggal acuan
   const refDate = new Date(referenceDateStr);
   const currentDay = refDate.getDay(); // 0 = Minggu, 1 = Senin, ...
   const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
@@ -81,28 +67,40 @@ export async function getFourWeeksAttendanceStats(
   const overallStart = weeks[0].start.toISOString().slice(0, 10);
   const overallEnd = weeks[3].end.toISOString().slice(0, 10);
 
-  // 4. Ambil seluruh absensi dalam rentang 4 minggu
-  const { data: attendances } = await supabase
-    .from('absensi')
-    .select('karyawan_id, tanggal, status')
-    .gte('tanggal', overallStart)
-    .lte('tanggal', overallEnd);
+  // 2. Kueri data secara paralel untuk performa optimal
+  const [
+    { data: holidaysData },
+    { data: employees },
+    { data: attendances },
+    { data: leaves },
+  ] = await Promise.all([
+    supabase.from('hari_libur').select('tanggal'),
+    supabase
+      .from('profiles')
+      .select('id, nama_lengkap, tanggal_masuk')
+      .eq('aktif', true),
+    supabase
+      .from('absensi')
+      .select('karyawan_id, tanggal, status')
+      .gte('tanggal', overallStart)
+      .lte('tanggal', overallEnd),
+    supabase
+      .from('pengajuan_cuti')
+      .select('karyawan_id, tanggal_mulai, tanggal_selesai, jenis')
+      .eq('status', 'disetujui')
+      .lte('tanggal_mulai', overallEnd)
+      .gte('tanggal_selesai', overallStart),
+  ]);
+
+  const holidaySet = new Set((holidaysData || []).map((h) => h.tanggal));
+  const activeEmployees = employees || [];
+  const approvedLeaves = leaves || [];
 
   // Map: `${karyawan_id}_${tanggal}` -> status ('hadir' | 'terlambat')
   const attMap = new Map<string, string>();
   (attendances || []).forEach((a) => {
     attMap.set(`${a.karyawan_id}_${a.tanggal}`, a.status);
   });
-
-  // 5. Ambil seluruh pengajuan cuti yang disetujui dalam rentang 4 minggu
-  const { data: leaves } = await supabase
-    .from('pengajuan_cuti')
-    .select('karyawan_id, tanggal_mulai, tanggal_selesai, jenis')
-    .eq('status', 'disetujui')
-    .lte('tanggal_mulai', overallEnd)
-    .gte('tanggal_selesai', overallStart);
-
-  const approvedLeaves = leaves || [];
 
   // Helper cek apakah karyawan sedang cuti pada tanggal tertentu
   const isEmployeeOnLeave = (karyawanId: string, dateStr: string): boolean => {

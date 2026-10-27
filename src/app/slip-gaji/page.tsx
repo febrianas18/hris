@@ -23,42 +23,67 @@ export default async function SlipGajiPage() {
   let divisions: DivisionItem[] = [];
 
   if (profile.peran === 'hrd') {
-    // 1. Ambil data slip gaji seluruh karyawan untuk HRD (BR-11)
-    const { data: slipsData } = await supabase
-      .from('slip_gaji')
-      .select(`
-        id,
-        nomor_slip,
-        karyawan_id,
-        periode,
-        gaji_pokok,
-        tunjangan,
-        potongan,
-        total_diterima,
-        catatan,
-        status,
-        dibuat_pada,
-        diterbitkan_pada,
-        diterbitkan_oleh,
-        karyawan:karyawan_id (
+    // Ambil data slip gaji, profil karyawan aktif, dan divisi secara paralel untuk HRD (BR-11)
+    const [
+      { data: slipsData },
+      { data: empData },
+      { data: divData },
+    ] = await Promise.all([
+      supabase
+        .from('slip_gaji')
+        .select(`
+          id,
+          nomor_slip,
+          karyawan_id,
+          periode,
+          gaji_pokok,
+          tunjangan,
+          potongan,
+          total_diterima,
+          catatan,
+          status,
+          dibuat_pada,
+          diterbitkan_pada,
+          diterbitkan_oleh,
+          karyawan:karyawan_id (
+            id,
+            nik_karyawan,
+            nama_lengkap,
+            email,
+            jabatan,
+            divisi_id,
+            divisi:divisi_id (
+              id,
+              nama
+            )
+          ),
+          publisher:diterbitkan_oleh (
+            id,
+            nama_lengkap
+          )
+        `)
+        .order('periode', { ascending: false })
+        .order('dibuat_pada', { ascending: false }),
+      supabase
+        .from('profiles')
+        .select(`
           id,
           nik_karyawan,
           nama_lengkap,
-          email,
           jabatan,
           divisi_id,
           divisi:divisi_id (
             id,
             nama
           )
-        ),
-        publisher:diterbitkan_oleh (
-          id,
-          nama_lengkap
-        )
-      `)
-      .order('periode', { ascending: false })
-      .order('dibuat_pada', { ascending: false });
+        `)
+        .eq('aktif', true)
+        .order('nama_lengkap'),
+      supabase
+        .from('divisi')
+        .select('id, nama')
+        .order('nama'),
+    ]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     initialSlips = (slipsData || []).map((s: any) => ({
@@ -78,23 +103,6 @@ export default async function SlipGajiPage() {
       publisher: s.publisher,
     }));
 
-    // 2. Ambil data seluruh karyawan aktif untuk HRD
-    const { data: empData } = await supabase
-      .from('profiles')
-      .select(`
-        id,
-        nik_karyawan,
-        nama_lengkap,
-        jabatan,
-        divisi_id,
-        divisi:divisi_id (
-          id,
-          nama
-        )
-      `)
-      .eq('aktif', true)
-      .order('nama_lengkap');
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     employees = (empData || []).map((e: any) => ({
       id: e.id,
@@ -104,12 +112,6 @@ export default async function SlipGajiPage() {
       divisi_id: e.divisi_id,
       divisi: e.divisi,
     }));
-
-    // 3. Ambil data divisi
-    const { data: divData } = await supabase
-      .from('divisi')
-      .select('id, nama')
-      .order('nama');
 
     divisions = divData || [];
   } else {
