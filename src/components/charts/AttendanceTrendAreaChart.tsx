@@ -31,14 +31,14 @@ export default function AttendanceTrendAreaChart({
         <AreaChart data={data} margin={{ top: 18, right: 10, left: 0, bottom: 2 }}>
           <defs>
             <linearGradient id="attendanceAreaHadir" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#4099ff" stopOpacity={0.34} />
-              <stop offset="70%" stopColor="#4099ff" stopOpacity={0.07} />
-              <stop offset="100%" stopColor="#4099ff" stopOpacity={0} />
+              <stop offset="0%" stopColor="#10b981" stopOpacity={0.34} />
+              <stop offset="70%" stopColor="#10b981" stopOpacity={0.07} />
+              <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="attendanceAreaLate" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffb64d" stopOpacity={0.3} />
-              <stop offset="70%" stopColor="#ffb64d" stopOpacity={0.06} />
-              <stop offset="100%" stopColor="#ffb64d" stopOpacity={0} />
+              <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.3} />
+              <stop offset="70%" stopColor="#f59e0b" stopOpacity={0.06} />
+              <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
             </linearGradient>
           </defs>
 
@@ -86,21 +86,21 @@ export default function AttendanceTrendAreaChart({
           <Area
             type="monotone"
             dataKey="terlambat"
-            stroke="#d97706"
+            stroke="#f59e0b"
             strokeWidth={2.2}
             fill="url(#attendanceAreaLate)"
-            dot={{ r: 4, fill: '#d97706', stroke: '#ffffff', strokeWidth: 3 }}
-            activeDot={{ r: 7, fill: '#d97706', stroke: '#ffffff', strokeWidth: 3 }}
+            dot={{ r: 4, fill: '#f59e0b', stroke: '#ffffff', strokeWidth: 3 }}
+            activeDot={{ r: 7, fill: '#f59e0b', stroke: '#ffffff', strokeWidth: 3 }}
             isAnimationActive={false}
           />
           <Area
             type="monotone"
             dataKey="hadir"
-            stroke="#1f6fd0"
+            stroke="#10b981"
             strokeWidth={2.6}
             fill="url(#attendanceAreaHadir)"
-            dot={{ r: 4, fill: '#1f6fd0', stroke: '#ffffff', strokeWidth: 3 }}
-            activeDot={{ r: 7, fill: '#1f6fd0', stroke: '#ffffff', strokeWidth: 3 }}
+            dot={{ r: 4, fill: '#10b981', stroke: '#ffffff', strokeWidth: 3 }}
+            activeDot={{ r: 7, fill: '#10b981', stroke: '#ffffff', strokeWidth: 3 }}
             isAnimationActive={false}
           />
         </AreaChart>

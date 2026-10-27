@@ -40,8 +40,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'clay-card clay-lift group relative flex flex-col overflow-hidden',
-        styles.surface,
+        'group relative flex flex-col overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs transition-shadow duration-200 hover:shadow-xs',
         className
       )}
     >
@@ -55,17 +54,17 @@ export function StatCard({
         <span
           aria-hidden="true"
           className={cn(
-            'clay-tile flex size-10 shrink-0 items-center justify-center rounded-xl',
+            'flex size-9 shrink-0 items-center justify-center rounded-lg shadow-2xs',
             styles.tile
           )}
         >
-          <Icon className="size-[19px]" strokeWidth={1.9} />
+          <Icon className="size-4.5" strokeWidth={1.9} />
         </span>
       </div>
 
       <div className="mt-3 flex-1 px-5 pb-5">
         <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-          <span className="font-heading text-[32px] leading-none font-extrabold tracking-tight text-foreground tabular-nums">
+          <span className="font-mono text-3xl font-extrabold text-foreground tabular-nums">
             {value}
           </span>
           {unit ? <span className="text-xs font-semibold text-muted-foreground">{unit}</span> : null}
@@ -96,10 +95,10 @@ interface MeterProps {
 }
 
 const METER_FILL: Record<NonNullable<MeterProps['tone']>, string> = {
-  primary: 'from-primary to-primary/70',
-  warning: 'from-chart-3 to-chart-2',
-  info: 'from-info to-info/70',
-  danger: 'from-destructive to-destructive/70',
+  primary: 'bg-primary',
+  warning: 'bg-amber-500',
+  info: 'bg-indigo-500',
+  danger: 'bg-rose-500',
 };
 
 /** Batang progres tipis dengan label aksesibel (tidak hanya mengandalkan warna). */
@@ -115,11 +114,11 @@ export function Meter({ value, max, label, tone = 'primary' }: MeterProps) {
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuetext={`${percent}%`}
-      className="clay-inset h-2 w-full overflow-hidden rounded-full bg-white/45"
+      className="h-2 w-full overflow-hidden rounded-full bg-muted"
     >
       <div
         className={cn(
-          'h-full rounded-full bg-gradient-to-r transition-[width] duration-500',
+          'h-full rounded-full transition-[width] duration-500',
           METER_FILL[tone]
         )}
         style={{ width: `${percent}%` }}

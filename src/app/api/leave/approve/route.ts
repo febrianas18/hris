@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getAuthUser } from '@/utils/auth';
+import { notifyHrdFinalLeaveDecision, notifyPemohonLeaveStatus } from '@/utils/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,6 +124,33 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: rpcErr.message }, { status: 400 });
       }
 
+      // Notifikasi Email ke HRD bahwa pengajuan menunggu keputusan akhir (PRD Bab 11)
+      (async () => {
+        try {
+          const { data: hrdList } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('peran', 'hrd')
+            .eq('aktif', true);
+
+          const hrdEmails = (hrdList || []).map((h) => h.email).filter(Boolean);
+          if (hrdEmails.length > 0) {
+            await notifyHrdFinalLeaveDecision({
+              hrdEmails,
+              pemohonNama: (pengajuan.pemohon as any)?.nama_lengkap || 'Karyawan',
+              jenis: pengajuan.jenis,
+              tanggalMulai: pengajuan.tanggal_mulai,
+              tanggalSelesai: pengajuan.tanggal_selesai,
+              jumlahHari: pengajuan.jumlah_hari,
+              alasan: pengajuan.alasan,
+              disetujuiAtasanOleh: profile.nama_lengkap,
+            });
+          }
+        } catch (emailErr) {
+          console.warn('[EMAIL NOTIFICATION HRD DISPATCH FAILED]', emailErr);
+        }
+      })();
+
       return NextResponse.json({
         success: true,
         message: 'Pengajuan berhasil disetujui (Tahap 1) dan diteruskan ke HRD untuk keputusan akhir.',
@@ -153,6 +181,32 @@ export async function POST(req: NextRequest) {
       if (rpcErr) {
         return NextResponse.json({ success: false, error: rpcErr.message }, { status: 400 });
       }
+
+      // Notifikasi Email ke Pemohon bahwa pengajuan disetujui HRD (PRD Bab 11)
+      (async () => {
+        try {
+          const { data: pemohonProfile } = await supabase
+            .from('profiles')
+            .select('email, nama_lengkap')
+            .eq('id', pengajuan.karyawan_id)
+            .maybeSingle();
+
+          if (pemohonProfile?.email) {
+            await notifyPemohonLeaveStatus({
+              pemohonEmail: pemohonProfile.email,
+              pemohonNama: pemohonProfile.nama_lengkap,
+              jenis: pengajuan.jenis,
+              status: 'disetujui',
+              tanggalMulai: pengajuan.tanggal_mulai,
+              tanggalSelesai: pengajuan.tanggal_selesai,
+              jumlahHari: pengajuan.jumlah_hari,
+              diprosesOlehNama: profile.nama_lengkap,
+            });
+          }
+        } catch (emailErr) {
+          console.warn('[EMAIL NOTIFICATION PEMOHON DISPATCH FAILED]', emailErr);
+        }
+      })();
 
       return NextResponse.json({
         success: true,

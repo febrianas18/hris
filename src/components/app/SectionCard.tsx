@@ -34,14 +34,13 @@ export function SectionCard({
   return (
     <section
       className={cn(
-        'clay-card flex flex-col overflow-hidden',
-        styles.surface,
+        'flex flex-col overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs',
         className
       )}
     >
       <header
         className={cn(
-          'flex flex-wrap items-start justify-between gap-3 border-b border-white/60 bg-gradient-to-r px-5 py-4',
+          'flex flex-wrap items-start justify-between gap-3 border-b border-border/60 bg-muted/20 px-5 py-4',
           styles.header
         )}
       >
@@ -50,7 +49,7 @@ export function SectionCard({
             <span
               aria-hidden="true"
               className={cn(
-                'clay-tile mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl',
+                'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg shadow-2xs',
                 styles.tile
               )}
             >
@@ -58,7 +57,7 @@ export function SectionCard({
             </span>
           ) : null}
           <div className="min-w-0">
-            <h2 className="font-heading text-[15px] font-extrabold tracking-tight text-foreground">
+            <h2 className="font-heading text-sm font-bold tracking-tight text-foreground">
               {title}
             </h2>
             {description ? (
@@ -82,10 +81,10 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon: Icon, title, description }: EmptyStateProps) {
   return (
-    <div className="clay-inset flex flex-col items-center justify-center border border-white/60 px-4 py-8 text-center">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-8 text-center">
       <span
         aria-hidden="true"
-        className="clay-tile flex size-11 items-center justify-center rounded-xl bg-white/60 text-muted-foreground"
+        className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground"
       >
         <Icon className="size-5" strokeWidth={1.6} />
       </span>

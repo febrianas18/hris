@@ -12,6 +12,10 @@ import {
 } from 'lucide-react';
 import { StatusPill } from '@/components/app/StatusPill';
 import { cn } from '@/lib/utils';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AttendanceData {
   id: string;
@@ -48,8 +52,10 @@ interface AttendanceStatusResponse {
 
 export default function AttendanceWidget({
   onStatusChange,
+  className,
 }: {
   onStatusChange?: () => void;
+  className?: string;
 }) {
   const [data, setData] = useState<AttendanceStatusResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -191,19 +197,29 @@ export default function AttendanceWidget({
 
   if (isLoading) {
     return (
-      <div
-        className="clay-card flex min-h-[260px] flex-col justify-center gap-4 bg-[#d9f5e8] p-5"
+      <Card
+        className={cn(
+          'flex min-h-[220px] flex-col justify-between border-border/80 shadow-xs',
+          className
+        )}
         aria-busy="true"
         aria-live="polite"
       >
-        <span className="sr-only">Memuat status absensi server…</span>
-        <div className="flex items-center justify-between">
-          <div className="h-3 w-28 animate-pulse rounded-full bg-muted" />
-          <div className="h-6 w-24 animate-pulse rounded-lg bg-muted" />
-        </div>
-        <div className="h-16 animate-pulse rounded-xl bg-muted/70" />
-        <div className="h-9 animate-pulse rounded-xl bg-muted/70" />
-      </div>
+        <CardHeader className="pb-2">
+          <div className="space-y-1.5">
+            <div className="h-3 w-24 animate-pulse rounded-full bg-muted" />
+            <div className="h-5 w-32 animate-pulse rounded-md bg-muted" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-2">
+          <div className="h-16 w-full animate-pulse rounded-xl bg-muted/60" />
+          <div className="h-4 w-3/4 animate-pulse rounded-md bg-muted/40" />
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-0">
+          <div className="h-10 w-full sm:w-36 animate-pulse rounded-lg bg-muted" />
+          <div className="h-10 w-full sm:w-36 animate-pulse rounded-lg bg-muted" />
+        </CardFooter>
+      </Card>
     );
   }
 
@@ -211,55 +227,60 @@ export default function AttendanceWidget({
   const isCheckedIn = Boolean(attendance);
 
   return (
-    <section
+    <Card
       aria-labelledby="attendance-widget-title"
-      className="clay-card relative flex flex-col overflow-hidden bg-[#d9f5e8]"
+      className={cn(
+        'dash-soft-blue-card relative flex flex-col justify-between overflow-hidden rounded-2xl text-foreground shadow-xs p-0',
+        className
+      )}
     >
-      {/* Header: label, status ringkas, dan jam server WIB */}
-      <div className="flex items-start justify-between gap-3 px-5 pt-5">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-16 -top-20 size-72 rounded-full bg-blue-500/10 blur-2xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-24 left-1/3 size-64 rounded-full border border-blue-500/5"
+      />
+      <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px] bg-[linear-gradient(90deg,#3b82f6,#60a5fa)]" />
+      <CardHeader className="relative z-10 pb-2 px-5 pt-5 sm:px-6 sm:pt-6">
         <div className="min-w-0">
           <p
             id="attendance-widget-title"
-            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+            className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400"
           >
-            Absensi Hari Ini
+            Presensi Hari Ini
           </p>
-          <p className="mt-1 truncate font-heading text-sm font-semibold text-foreground">
+          <CardTitle className="mt-0.5 truncate text-base font-bold text-foreground">
             {isCheckedIn
               ? attendance?.jam_pulang
-                ? 'Sesi kerja selesai'
-                : 'Sedang bekerja'
-              : 'Belum check-in'}
-          </p>
+                ? 'Sesi Kerja Selesai'
+                : 'Sedang Bekerja'
+              : 'Belum Check-in'}
+          </CardTitle>
         </div>
+      </CardHeader>
 
-        <div className="clay-inset flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[11px] font-semibold text-muted-foreground tabular-nums">
-          <Clock aria-hidden="true" className="size-3 text-primary" />
-          <span>{displayTime ? `${displayTime} WIB` : `${data?.serverTime?.timeStr ?? '--:--:--'} WIB`}</span>
-        </div>
-      </div>
-
-      {/* Isi utama */}
-      <div className="mt-4 flex-1 px-5">
+      <CardContent className="relative z-10 flex-1 space-y-3 pt-1 px-5 sm:px-6">
         {attendance ? (
-          <>
-            <div className="clay-inset grid grid-cols-2 divide-x divide-white/60 overflow-hidden">
-              <div className="bg-primary/[0.06] px-3.5 py-3">
-                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                  <LogIn aria-hidden="true" className="size-3 text-primary" /> Masuk
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="grid grid-cols-2 gap-2 overflow-hidden rounded-xl border border-blue-200/60 dark:border-blue-900/40 bg-background/80 backdrop-blur-xs p-2.5 w-full sm:max-w-xs shrink-0">
+              <div className="rounded-lg bg-emerald-500/10 p-2.5 border border-emerald-500/25">
+                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                  <LogIn aria-hidden="true" className="size-3 text-emerald-600 dark:text-emerald-400" /> Masuk
                 </p>
-                <p className="mt-1 font-heading text-xl font-extrabold text-foreground tabular-nums">
+                <p className="mt-1 font-mono text-xl font-bold text-foreground tabular-nums">
                   {formatTimeOnly(attendance.jam_masuk)}
                 </p>
               </div>
-              <div className="bg-info/[0.06] px-3.5 py-3">
-                <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                  <LogOut aria-hidden="true" className="size-3 text-info" /> Pulang
+              <div className="rounded-lg bg-blue-500/10 p-2.5 border border-blue-500/25">
+                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                  <LogOut aria-hidden="true" className="size-3 text-blue-600 dark:text-blue-400" /> Pulang
                 </p>
                 <p
                   className={cn(
-                    'mt-1 font-heading text-xl font-extrabold tabular-nums',
-                    attendance.jam_pulang ? 'text-foreground' : 'text-muted-foreground/60'
+                    'mt-1 font-mono text-xl font-bold tabular-nums text-foreground',
+                    !attendance.jam_pulang && 'opacity-50'
                   )}
                 >
                   {attendance.jam_pulang ? formatTimeOnly(attendance.jam_pulang) : '--:--'}
@@ -267,100 +288,91 @@ export default function AttendanceWidget({
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="flex flex-col sm:items-end gap-1.5 min-w-0">
               <StatusPill kind="attendance" status={attendance.status} />
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
+              <p className="text-xs text-muted-foreground leading-relaxed sm:text-right">
                 {attendance.jam_pulang
                   ? 'Catatan kehadiran hari ini sudah lengkap.'
                   : 'Check-out dapat dilakukan hingga 23.59 WIB.'}
               </p>
             </div>
-          </>
+          </div>
         ) : (
-          <div>
-            <p className="font-mono text-[26px] leading-none font-semibold text-foreground tabular-nums">
+          <div className="rounded-xl border border-blue-200/60 dark:border-blue-900/40 bg-background/80 backdrop-blur-xs p-3.5">
+            <p className="font-mono text-2xl font-bold text-foreground tabular-nums">
               {displayTime || data?.serverTime?.timeStr || '--:--:--'}
-              <span className="ml-1 font-sans text-xs font-medium text-muted-foreground">WIB</span>
+              <span className="ml-1.5 font-sans text-xs font-semibold text-muted-foreground">WIB</span>
             </p>
-            <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+            <div className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
               {data?.blockReason ? (
-                <>
-                  <AlertTriangle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-chart-5" />
+                <div className="flex items-start gap-1.5 text-amber-700 dark:text-amber-400 font-medium">
+                  <AlertTriangle aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
                   <span>{data.blockReason}</span>
-                </>
+                </div>
               ) : (
-                <span>Jendela check-in 06.00–12.00 WIB · batas jam masuk 08.15 WIB.</span>
+                <p>Jendela check-in 06.00–12.00 WIB · batas toleransi jam masuk 08.15 WIB.</p>
               )}
-            </p>
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Tombol aksi */}
-      <div className="mt-5 grid grid-cols-2 gap-2.5 px-5 pb-5">
-        <button
+        {/* Feedback aksi */}
+        {feedback && (
+          <Alert
+            role="status"
+            aria-live="polite"
+            variant={feedback.type === 'success' ? 'default' : 'destructive'}
+            className={cn(
+              'py-2 px-3 text-xs',
+              feedback.type === 'success'
+                ? 'border-emerald-500/40 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200'
+                : 'border-rose-500/40 bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200'
+            )}
+          >
+            {feedback.type === 'success' ? (
+              <CheckCircle2 aria-hidden="true" className="size-4 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <AlertCircle aria-hidden="true" className="size-4" />
+            )}
+            <AlertDescription className="text-xs font-medium">
+              {feedback.message}
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+
+      <CardFooter className="relative z-10 flex flex-wrap items-center gap-2.5 pt-2 px-5 pb-5 sm:px-6 sm:pb-6">
+        <Button
           id="btn-attendance-check-in"
           type="button"
           onClick={handleCheckIn}
           disabled={!data?.canCheckIn || isSubmitting !== null}
-          className={cn(
-            'inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-all duration-200',
-            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-            data?.canCheckIn && isSubmitting === null
-              ? 'bg-gradient-to-b from-primary to-primary/90 text-primary-foreground shadow-sm hover:from-primary/90 hover:to-primary/80 active:translate-y-px'
-              : 'cursor-not-allowed border border-border/70 bg-muted text-muted-foreground/60'
-          )}
+          className="h-10 flex-1 sm:flex-initial sm:w-36 cursor-pointer font-bold shadow-xs bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-50"
         >
           {isSubmitting === 'check-in' ? (
-            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+            <Loader2 aria-hidden="true" className="size-4 animate-spin mr-1.5" />
           ) : (
-            <LogIn aria-hidden="true" className="size-4" />
+            <LogIn aria-hidden="true" className="size-4 mr-1.5" />
           )}
           <span>Check-in</span>
-        </button>
+        </Button>
 
-        <button
+        <Button
           id="btn-attendance-check-out"
           type="button"
+          variant="outline"
           onClick={handleCheckOut}
           disabled={!data?.canCheckOut || isSubmitting !== null}
-          className={cn(
-            'inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-all duration-200',
-            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-            data?.canCheckOut && isSubmitting === null
-              ? 'border border-border bg-gradient-to-b from-card to-muted/40 text-foreground shadow-xs hover:to-muted active:translate-y-px'
-              : 'cursor-not-allowed border border-border/70 bg-muted text-muted-foreground/60'
-          )}
+          className="h-10 flex-1 sm:flex-initial sm:w-36 cursor-pointer font-bold shadow-xs border-border bg-background hover:bg-muted text-foreground disabled:opacity-50"
         >
           {isSubmitting === 'check-out' ? (
-            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+            <Loader2 aria-hidden="true" className="size-4 animate-spin mr-1.5" />
           ) : (
-            <LogOut aria-hidden="true" className="size-4" />
+            <LogOut aria-hidden="true" className="size-4 mr-1.5" />
           )}
           <span>Check-out</span>
-        </button>
-      </div>
-
-      {/* Feedback aksi */}
-      {feedback && (
-        <div
-          role="status"
-          aria-live="polite"
-          className={cn(
-            'mx-5 mb-5 flex items-start gap-2.5 rounded-xl border p-3 text-xs animate-in fade-in slide-in-from-bottom-1 duration-200 motion-reduce:animate-none',
-            feedback.type === 'success'
-              ? 'border-primary/25 bg-gradient-to-r from-primary/15 to-primary/5 text-primary'
-              : 'border-destructive/25 bg-gradient-to-r from-destructive/15 to-destructive/5 text-destructive'
-          )}
-        >
-          {feedback.type === 'success' ? (
-            <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          ) : (
-            <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          )}
-          <span className="flex-1 leading-relaxed">{feedback.message}</span>
-        </div>
-      )}
-    </section>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

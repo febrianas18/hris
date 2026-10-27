@@ -86,7 +86,25 @@ export default async function PrintSlipPage({
   };
 
   return (
-    <div className="min-h-screen bg-slate-100/60 print:bg-white text-slate-900 py-6 sm:py-10 px-4">
+    <div className="min-h-screen bg-muted/40 px-4 py-6 text-foreground sm:py-10 print:min-h-0 print:bg-white print:p-0 print:text-black">
+      {/* Aturan kertas A4: margin cetak 12mm, latar selalu putih. */}
+      <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 12mm;
+        }
+        @media print {
+          html,
+          body {
+            background: #ffffff !important;
+          }
+          .payslip-container {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      `}</style>
+
       {/* Top action bar (hidden on print) */}
       <PrintHeaderBar
         nomorSlip={payslipData.nomor_slip || 'Draf'}

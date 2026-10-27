@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import {
@@ -24,66 +24,75 @@ interface DivisionLeaveBarChartProps {
   height?: number;
 }
 
-export default function DivisionLeaveBarChart({
-  data,
-  height = 320,
-}: DivisionLeaveBarChartProps) {
+// Warna memakai token tema agar otomatis menyesuaikan mode terang/gelap.
+const CHART_COLORS = {
+  cuti_tahunan: 'var(--primary)',
+  sakit: 'var(--destructive)',
+  izin: 'var(--chart-2)',
+};
+const AXIS_COLOR = 'var(--muted-foreground)';
+const GRID_COLOR = 'var(--border)';
+
+const LABELS: Record<string, string> = {
+  cuti_tahunan: 'Cuti Tahunan',
+  sakit: 'Sakit',
+  izin: 'Izin',
+};
+
+export default function DivisionLeaveBarChart({ data, height = 320 }: DivisionLeaveBarChartProps) {
   return (
     <div className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data}
-          margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+        <BarChart data={data} margin={{ top: 16, right: 16, left: -8, bottom: 4 }} barCategoryGap="28%">
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
           <XAxis
             dataKey="divisi"
-            stroke="#64748b"
-            fontSize={12}
+            stroke={AXIS_COLOR}
+            fontSize={11}
             tickLine={false}
-            axisLine={{ stroke: '#e2e8f0' }}
+            axisLine={{ stroke: GRID_COLOR }}
+            tickMargin={8}
           />
           <YAxis
-            stroke="#64748b"
-            fontSize={12}
+            stroke={AXIS_COLOR}
+            fontSize={11}
             tickLine={false}
-            axisLine={{ stroke: '#e2e8f0' }}
+            axisLine={false}
+            tickMargin={4}
             tickFormatter={(val) => `${val}h`}
           />
           <Tooltip
+            cursor={{ fill: 'rgba(255,255,255,0.42)', radius: 12 }}
             contentStyle={{
-              backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+              backgroundColor: 'var(--popover)',
+              color: 'var(--popover-foreground)',
+              borderRadius: '18px',
+              border: '1px solid rgba(255,255,255,0.8)',
+              boxShadow:
+                '0 20px 34px -18px rgba(54,38,92,0.38), 0 8px 16px -12px rgba(54,38,92,0.2)',
               fontSize: '12px',
+              fontWeight: 600,
+              padding: '10px 14px',
             }}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            formatter={(value: any, name: any) => {
-              const labels: Record<string, string> = {
-                cuti_tahunan: 'Cuti Tahunan',
-                sakit: 'Sakit',
-                izin: 'Izin',
-              };
-              return [`${value} hari kerja`, labels[name] || name];
-            }}
+            formatter={(value: any, name: any) => [`${value} hari kerja`, LABELS[name] || name]}
           />
           <Legend
             verticalAlign="top"
-            height={36}
+            align="left"
+            height={44}
             iconType="circle"
-            formatter={(val) => {
-              const labels: Record<string, string> = {
-                cuti_tahunan: 'Cuti Tahunan',
-                sakit: 'Sakit',
-                izin: 'Izin',
-              };
-              return <span className="text-xs text-slate-600 font-medium">{labels[val] || val}</span>;
-            }}
+            iconSize={7}
+            wrapperStyle={{ paddingBottom: 4 }}
+            formatter={(val) => (
+              <span className="text-[11px] font-semibold text-muted-foreground">
+                {LABELS[val] || val}
+              </span>
+            )}
           />
-          <Bar dataKey="cuti_tahunan" fill="#6366f1" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="sakit" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="izin" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="cuti_tahunan" fill={CHART_COLORS.cuti_tahunan} radius={[8, 8, 0, 0]} maxBarSize={40} isAnimationActive={false} />
+          <Bar dataKey="sakit" fill={CHART_COLORS.sakit} radius={[8, 8, 0, 0]} maxBarSize={40} isAnimationActive={false} />
+          <Bar dataKey="izin" fill={CHART_COLORS.izin} radius={[8, 8, 0, 0]} maxBarSize={40} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>

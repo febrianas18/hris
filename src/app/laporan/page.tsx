@@ -55,7 +55,9 @@ export default async function LaporanPage() {
     .gte('tanggal', `${currentMonthPrefix}-01`)
     .lte('tanggal', `${currentMonthPrefix}-31`);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lateCounts = new Map<string, { count: number; profile: any }>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (lateAttendances || []).forEach((item: any) => {
     const kId = item.karyawan_id;
     if (!lateCounts.has(kId)) {
@@ -118,6 +120,7 @@ export default async function LaporanPage() {
       });
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (approvedLeavesData || []).forEach((leave: any) => {
       const leaveMonth = (leave.tanggal_mulai || '').slice(0, 7);
       if (leaveMonth === m.prefix) {
@@ -163,6 +166,7 @@ export default async function LaporanPage() {
     `)
     .eq('status', 'terbit');
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const publishedSlips = (publishedSlipsData || []).map((s: any) => ({
     id: s.id,
     periode: s.periode,

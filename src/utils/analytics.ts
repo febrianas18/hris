@@ -139,13 +139,14 @@ export async function getFourWeeksAttendanceStats(
             continue;
           }
 
+          const isLeave = isEmployeeOnLeave(emp.id, dateStr);
           const attStatus = attMap.get(`${emp.id}_${dateStr}`);
-          if (attStatus === 'hadir') {
+          if (isLeave) {
+            countCutiIzin++;
+          } else if (attStatus === 'hadir') {
             countHadir++;
           } else if (attStatus === 'terlambat') {
             countTerlambat++;
-          } else if (isEmployeeOnLeave(emp.id, dateStr)) {
-            countCutiIzin++;
           } else {
             // Tanpa Keterangan (Alpa) dihitung otomatis jika hari kerja tidak ada absensi dan tidak cuti
             // Hanya jika tanggal <= referenceDateStr

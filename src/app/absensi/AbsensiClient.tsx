@@ -1,7 +1,27 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AttendanceWidget from '@/components/AttendanceWidget';
+import { PageHeader, MetaDot } from '@/components/app/PageHeader';
+import { StatCard, Meter } from '@/components/app/StatCard';
+import { StatusPill } from '@/components/app/StatusPill';
+import { FormField } from '@/components/app/FormField';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import {
   Calendar,
   Clock,
@@ -13,9 +33,10 @@ import {
   CheckCircle2,
   Edit3,
   X,
-  FileSpreadsheet,
   AlertTriangle,
   Loader2,
+  ClipboardList,
+  Search,
 } from 'lucide-react';
 
 export interface AbsensiRecord {
@@ -63,6 +84,36 @@ interface AbsensiClientProps {
   todayStr: string;
 }
 
+/**
+ * Helper pill untuk status kehadiran harian
+ */
+function DailyAttendancePill({
+  statusType,
+  statusText,
+}: {
+  statusType: 'hadir' | 'terlambat' | 'cuti' | 'absen';
+  statusText: string;
+}) {
+  if (statusType === 'hadir' || statusType === 'terlambat') {
+    return <StatusPill kind="attendance" status={statusType} />;
+  }
+
+  const normalized = statusText.toLowerCase();
+  if (normalized === 'izin' || normalized === 'cuti' || normalized === 'sakit') {
+    return <StatusPill kind="attendance" status={normalized} />;
+  }
+
+  if (statusType === 'absen' || normalized.includes('absen') || normalized.includes('alpa') || normalized.includes('belum')) {
+    return <StatusPill kind="attendance" status="alpa" />;
+  }
+
+  return (
+    <Badge variant="outline" className="text-[10px] text-muted-foreground font-medium">
+      {statusText}
+    </Badge>
+  );
+}
+
 export default function AbsensiClient({
   currentUserRole,
   currentUserId,
@@ -72,6 +123,7 @@ export default function AbsensiClient({
   approvedLeaves,
   todayStr,
 }: AbsensiClientProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'pribadi' | 'tim' | 'semua'>(
     currentUserRole === 'hrd' ? 'semua' : 'pribadi'
   );
@@ -80,9 +132,14 @@ export default function AbsensiClient({
   const [selectedMonth, setSelectedMonth] = useState<string>(todayStr.slice(0, 7)); // 'YYYY-MM'
   const [selectedDivisi, setSelectedDivisi] = useState<string>('semua');
   const [selectedStatus, setSelectedStatus] = useState<string>('semua');
+  const [searchDaily, setSearchDaily] = useState<string>('');
   const [records, setRecords] = useState<AbsensiRecord[]>(initialRecords);
 
-  // Modal Koreksi Absensi (Khusus HRD - BR-03)
+  useEffect(() => {
+    setRecords(initialRecords);
+  }, [initialRecords]);
+
+  // Modal Koreksi Absensi (Khusus HRD - BR-03 & BR-12)
   const [koreksiModalOpen, setKoreksiModalOpen] = useState(false);
   const [selectedRecordForKoreksi, setSelectedRecordForKoreksi] = useState<AbsensiRecord | null>(null);
   const [koreksiJamMasuk, setKoreksiJamMasuk] = useState('');
@@ -111,7 +168,7 @@ export default function AbsensiClient({
   const formatDateDisplay = (dateString: string) => {
     try {
       const parts = dateString.split('-');
-      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
       return new Intl.DateTimeFormat('id-ID', {
         weekday: 'long',
         day: 'numeric',
@@ -147,11 +204,7 @@ export default function AbsensiClient({
 
   // Data gabungan seluruh karyawan pada tanggal yang dipilih (Wireframe Hal. 2)
   const dailyEmployeesData = useMemo(() => {
-    // Tentukan pool profil yang relevan
-    const pool =
-      currentUserRole === 'atasan'
-        ? allProfiles // Atasan hanya untuk divisinya (disaring di backend atau lewat divisi)
-        : allProfiles;
+    const pool = allProfiles;
 
     return pool.map((emp) => {
       const att = records.find(
@@ -167,13 +220,13 @@ export default function AbsensiClient({
       let computedStatus: string = 'Belum Hadir';
       let statusType: 'hadir' | 'terlambat' | 'cuti' | 'absen' = 'absen';
 
-      if (att) {
-        computedStatus = att.status === 'hadir' ? 'Hadir' : 'Terlambat';
-        statusType = att.status;
-      } else if (leave) {
+      if (leave) {
         const j = leave.jenis.toLowerCase();
         computedStatus = j === 'sakit' ? 'Sakit' : j === 'izin' ? 'Izin' : 'Cuti';
         statusType = 'cuti';
+      } else if (att) {
+        computedStatus = att.status === 'hadir' ? 'Hadir' : 'Terlambat';
+        statusType = att.status;
       }
 
       return {
@@ -182,24 +235,27 @@ export default function AbsensiClient({
         nama: emp.nama_lengkap,
         divisi: emp.divisi?.nama || '-',
         divisi_id: emp.divisi_id,
-        masuk: att ? formatTimeOnly(att.jam_masuk) : '-',
-        pulang: att?.jam_pulang ? formatTimeOnly(att.jam_pulang) : '-',
+        masuk: leave ? '-' : att ? formatTimeOnly(att.jam_masuk) : '-',
+        pulang: leave ? '-' : att?.jam_pulang ? formatTimeOnly(att.jam_pulang) : '-',
         statusText: computedStatus,
         statusType,
-        attRecord: att,
-        catatan:
-          att && !att.jam_pulang
-            ? 'Belum check-out'
-            : att?.dikoreksi_oleh
-            ? 'Terkoreksi'
-            : leave
-            ? 'Disetujui'
-            : '-',
+        attRecord: leave ? undefined : att,
+        catatan: leave
+          ? leave.jenis.toLowerCase() === 'sakit'
+            ? 'Sakit Resmi'
+            : leave.jenis.toLowerCase() === 'izin'
+            ? 'Izin Resmi'
+            : 'Cuti Resmi'
+          : att && !att.jam_pulang
+          ? 'Belum check-out'
+          : att?.dikoreksi_oleh
+          ? 'Terkoreksi HRD'
+          : '-',
       };
     });
-  }, [allProfiles, records, approvedLeaves, selectedDate, currentUserRole]);
+  }, [allProfiles, records, approvedLeaves, selectedDate]);
 
-  // Filter berdasarkan Divisi dan Status untuk tampilan tabel harian
+  // Filter berdasarkan Divisi, Status, dan Pencarian
   const filteredDailyData = useMemo(() => {
     return dailyEmployeesData.filter((item) => {
       const matchDivisi =
@@ -211,9 +267,18 @@ export default function AbsensiClient({
       else if (selectedStatus === 'cuti') matchStatus = item.statusType === 'cuti';
       else if (selectedStatus === 'absen') matchStatus = item.statusType === 'absen';
 
-      return matchDivisi && matchStatus;
+      let matchSearch = true;
+      if (searchDaily.trim()) {
+        const q = searchDaily.toLowerCase();
+        matchSearch =
+          item.nama.toLowerCase().includes(q) ||
+          item.nik.toLowerCase().includes(q) ||
+          item.divisi.toLowerCase().includes(q);
+      }
+
+      return matchDivisi && matchStatus && matchSearch;
     });
-  }, [dailyEmployeesData, selectedDivisi, selectedStatus]);
+  }, [dailyEmployeesData, selectedDivisi, selectedStatus, searchDaily]);
 
   // Statistik Ringkasan Harian (Wireframe Hal. 2)
   const summaryCounts = useMemo(() => {
@@ -231,6 +296,9 @@ export default function AbsensiClient({
 
     return { tepatWaktu, terlambat, cutiSakitIzin, tanpaKeterangan };
   }, [dailyEmployeesData]);
+
+  const roleLabel =
+    currentUserRole === 'hrd' ? 'HRD' : currentUserRole === 'atasan' ? 'Atasan' : 'Karyawan';
 
   // Buka Modal Koreksi untuk HRD (BR-03)
   const openKoreksiModal = (record: AbsensiRecord) => {
@@ -257,7 +325,6 @@ export default function AbsensiClient({
     setKoreksiError(null);
 
     try {
-      // Susun ISO string WIB
       const datePart = selectedRecordForKoreksi.tanggal;
       const isoMasuk = `${datePart}T${koreksiJamMasuk}:00+07:00`;
       const isoPulang = koreksiJamPulang
@@ -278,7 +345,6 @@ export default function AbsensiClient({
 
       const resData = await res.json();
       if (res.ok && resData.success) {
-        // Perbarui state lokal
         setRecords((prev) =>
           prev.map((r) => (r.id === selectedRecordForKoreksi.id ? resData.data : r))
         );
@@ -322,602 +388,764 @@ export default function AbsensiClient({
     document.body.removeChild(link);
   };
 
+  const handleExportPersonalCSV = () => {
+    const headers = ['Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status', 'Catatan'];
+    const rows = personalRecords.map((r) => [
+      `"${r.tanggal}"`,
+      `"${formatTimeOnly(r.jam_masuk)}"`,
+      `"${r.jam_pulang ? formatTimeOnly(r.jam_pulang) : '-'}"`,
+      `"${r.status === 'hadir' ? 'Hadir' : 'Terlambat'}"`,
+      `"${r.dikoreksi_oleh ? 'Dikoreksi HRD: ' + (r.alasan_koreksi || '') : '-'}"`,
+    ]);
+    const csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const link = document.createElement('a');
+    link.href = encodeURI(csv);
+    link.download = `Absensi_Pribadi_${selectedMonth}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        accent="primary"
+        title="Pencatatan & Riwayat Absensi"
+        icon={Calendar}
+        meta={
+          <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+            <Calendar className="size-3.5 text-primary" />
+            <span>{formatDateDisplay(todayStr)}</span>
+          </span>
+        }
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={activeTab === 'pribadi' ? handleExportPersonalCSV : handleExportCSV}
+            className="gap-2 font-semibold shadow-2xs"
+          >
+            <Download className="size-4 text-muted-foreground" />
+            <span>Unduh CSV</span>
+          </Button>
+        }
+      />
+
       {/* Notifikasi Koreksi Sukses */}
       {koreksiSuccessMsg && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2.5 animate-in fade-in">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          <span>{koreksiSuccessMsg}</span>
-        </div>
+        <Alert className="border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100">
+          <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+          <AlertTitle className="text-xs font-bold">Koreksi Berhasil</AlertTitle>
+          <AlertDescription className="text-xs">{koreksiSuccessMsg}</AlertDescription>
+        </Alert>
       )}
 
-      {/* Baris Widget Absensi & Navigasi Tab */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <AttendanceWidget />
-        </div>
+      {/* Tab Switcher */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 pb-3">
+        <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-xl border border-border/70">
+          <button
+            type="button"
+            onClick={() => setActiveTab('pribadi')}
+            className={cn(
+              'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+              activeTab === 'pribadi'
+                ? 'bg-card text-primary shadow-xs font-bold border border-border/70 ring-1 ring-primary/20'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+            )}
+          >
+            Riwayat Pribadi
+          </button>
 
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  Modul Absensi PT Karsa Lintas Nusantara
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Pencatatan waktu server WIB (Asia/Jakarta) · Aturan BR-02 & BR-03
-                </p>
-              </div>
+          {currentUserRole === 'atasan' && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('tim')}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+                activeTab === 'tim'
+                  ? 'bg-card text-primary shadow-xs font-bold border border-border/70 ring-1 ring-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+              )}
+            >
+              Tim Divisi
+            </button>
+          )}
 
-              {/* Tab Selector */}
-              <div className="flex items-center p-1 bg-slate-100 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('pribadi')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    activeTab === 'pribadi'
-                      ? 'bg-white text-indigo-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Riwayat Pribadi
-                </button>
-
-                {currentUserRole === 'atasan' && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('tim')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      activeTab === 'tim'
-                        ? 'bg-white text-indigo-600 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Tim Divisi
-                  </button>
-                )}
-
-                {currentUserRole === 'hrd' && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('semua')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      activeTab === 'semua'
-                        ? 'bg-white text-indigo-600 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Semua Karyawan (HRD)
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-[11px] text-slate-500 font-medium">Batas Masuk</div>
-                <div className="text-sm font-bold text-slate-800 mt-0.5">08.15.00 WIB</div>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-[11px] text-slate-500 font-medium">Jendela Check-in</div>
-                <div className="text-sm font-bold text-slate-800 mt-0.5">06.00 - 12.00 WIB</div>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-[11px] text-slate-500 font-medium">Hak Koreksi</div>
-                <div className="text-sm font-bold text-slate-800 mt-0.5">Khusus HRD</div>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-[11px] text-slate-500 font-medium">Alasan Koreksi</div>
-                <div className="text-sm font-bold text-slate-800 mt-0.5">Min. 10 Karakter</div>
-              </div>
-            </div>
-          </div>
+          {currentUserRole === 'hrd' && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('semua')}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+                activeTab === 'semua'
+                  ? 'bg-card text-primary shadow-xs font-bold border border-border/70 ring-1 ring-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+              )}
+            >
+              Semua Karyawan (HRD)
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Konten Tab: Pribadi */}
-      {activeTab === 'pribadi' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 mb-5">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-indigo-600" />
-                <span>Riwayat Absensi Pribadi per Bulan</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Catatan kehadiran kerja mandiri Anda zona WIB
-              </p>
+      {/* Widget Check-in/Check-out & Ketentuan Aturan */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-stretch">
+        <div className="w-full flex flex-col">
+          <AttendanceWidget className="h-full" onStatusChange={() => router.refresh()} />
+        </div>
+
+        <Card className="border-border/80 shadow-2xs flex flex-col justify-between h-full">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="size-4.5 text-primary" />
+              <div>
+                <CardTitle className="text-sm font-bold text-foreground">
+                  Ketentuan Jam Kerja & Presensi
+                </CardTitle>
+              </div>
+            </div>
+          </CardHeader>
+
+          {/* Susunan 2x2 dengan warna informatif */}
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+            {/* 1. Tepat Waktu (Emerald) */}
+            <div className="flex items-start gap-3 rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-3.5 dark:border-emerald-800/60 dark:bg-emerald-950/25">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="size-4.5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                  Batas Tepat Waktu
+                </p>
+                <p className="font-mono text-sm font-extrabold text-emerald-950 dark:text-emerald-100 tabular-nums">
+                  08.15.00 WIB
+                </p>
+                <p className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80 mt-0.5">
+                  Toleransi check-in sebelum terlambat
+                </p>
+              </div>
             </div>
 
-            {/* Filter Bulan & Download CSV Pribadi */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-semibold text-slate-600 whitespace-nowrap">
-                  Periode Bulan:
-                </label>
-                <input
-                  type="month"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+            {/* 2. Jendela Masuk (Blue) */}
+            <div className="flex items-start gap-3 rounded-xl border border-blue-200/80 bg-blue-50/60 p-3.5 dark:border-blue-800/60 dark:bg-blue-950/25">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                <Clock className="size-4.5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-blue-800 dark:text-blue-300">
+                  Jendela Presensi Masuk
+                </p>
+                <p className="font-mono text-sm font-extrabold text-blue-950 dark:text-blue-100 tabular-nums">
+                  06.00 – 12.00 WIB
+                </p>
+                <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 mt-0.5">
+                  Sesi presensi masuk dibuka pagi
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Hak Koreksi (Amber) */}
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50/60 p-3.5 dark:border-amber-800/60 dark:bg-amber-950/25">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                <UserCheck className="size-4.5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                  Hak Koreksi Data
+                </p>
+                <p className="text-sm font-extrabold text-amber-950 dark:text-amber-100">
+                  Khusus HRD
+                </p>
+                <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80 mt-0.5">
+                  Wewenang penyesuaian catatan absensi
+                </p>
+              </div>
+            </div>
+
+            {/* 4. Alasan Koreksi (Indigo) */}
+            <div className="flex items-start gap-3 rounded-xl border border-indigo-200/80 bg-indigo-50/60 p-3.5 dark:border-indigo-800/60 dark:bg-indigo-950/25">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                <ClipboardList className="size-4.5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
+                  Alasan Koreksi
+                </p>
+                <p className="font-mono text-sm font-extrabold text-indigo-950 dark:text-indigo-100 tabular-nums">
+                  Minimal 10 Karakter
+                </p>
+                <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5">
+                  Wajib dicatat untuk audit log sistem
+                </p>
+              </div>
+            </div>
+          </CardContent>
+
+          <CardFooter className="pt-1">
+            <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] font-medium text-primary w-full">
+              <AlertCircle className="size-4 shrink-0" />
+              <span>
+                Pencatatan berbasis jam server resmi WIB. Seluruh penyesuaian oleh HRD otomatis masuk audit log.
+              </span>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
+
+      {/* TAB 1: RIWAYAT ABSENSI PRIBADI */}
+      {activeTab === 'pribadi' && (
+        <div className="space-y-4">
+          <Card className="border-border/80 shadow-sm">
+            <CardHeader className="pb-3 border-b border-border/60">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-base font-bold text-foreground">
+                    Riwayat Kehadiran Pribadi
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Catatan kehadiran kerja mandiri Anda pada periode bulan terpilih.
+                  </CardDescription>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label htmlFor="filter-bulan" className="text-xs font-semibold text-muted-foreground">
+                    Periode Bulan:
+                  </label>
+                  <Input
+                    id="filter-bulan"
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="h-8 w-40 font-mono text-xs tabular-nums"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-5 pt-4">
+              {/* 3 Kartu Ringkasan Bulanan */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <StatCard
+                  label="Total Hari Hadir"
+                  value={personalStats.total}
+                  unit="hari kerja"
+                  hint={`Seluruh catatan presensi bulan ${selectedMonth}`}
+                  icon={Calendar}
+                  accent="neutral"
+                />
+                <StatCard
+                  label="Hadir Tepat Waktu"
+                  value={personalStats.hadir}
+                  unit="hari"
+                  hint="Presensi masuk tepat waktu"
+                  icon={CheckCircle2}
+                  accent="primary"
+                  footer={
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span>Ketepatan Waktu</span>
+                        <span className="font-mono tabular-nums font-bold text-foreground">
+                          {personalStats.total > 0
+                            ? Math.round((personalStats.hadir / personalStats.total) * 100)
+                            : 0}
+                          %
+                        </span>
+                      </div>
+                      <Meter
+                        value={personalStats.hadir}
+                        max={personalStats.total}
+                        label="Proporsi kehadiran tepat waktu"
+                      />
+                    </div>
+                  }
+                />
+                <StatCard
+                  label="Terlambat"
+                  value={personalStats.terlambat}
+                  unit="hari"
+                  hint="Presensi masuk melewati toleransi"
+                  icon={Clock}
+                  accent="warning"
+                  footer={
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span>Tingkat Keterlambatan</span>
+                        <span className="font-mono tabular-nums font-bold text-amber-600 dark:text-amber-400">
+                          {personalStats.total > 0
+                            ? Math.round((personalStats.terlambat / personalStats.total) * 100)
+                            : 0}
+                          %
+                        </span>
+                      </div>
+                      <Meter
+                        value={personalStats.terlambat}
+                        max={personalStats.total}
+                        label="Proporsi keterlambatan"
+                        tone="warning"
+                      />
+                    </div>
+                  }
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const headers = ['Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status', 'Catatan'];
-                  const rows = personalRecords.map((r) => [
-                    `"${r.tanggal}"`,
-                    `"${formatTimeOnly(r.jam_masuk)}"`,
-                    `"${r.jam_pulang ? formatTimeOnly(r.jam_pulang) : '-'}"`,
-                    `"${r.status === 'hadir' ? 'Hadir' : 'Terlambat'}"`,
-                    `"${r.dikoreksi_oleh ? 'Dikoreksi HRD: ' + (r.alasan_koreksi || '') : '-'}"`,
-                  ]);
-                  const csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-                  const link = document.createElement('a');
-                  link.href = encodeURI(csv);
-                  link.download = `Absensi_Pribadi_${selectedMonth}.csv`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all cursor-pointer shadow-xs"
-              >
-                <Download className="w-3.5 h-3.5 text-slate-500" />
-                <span>Unduh CSV</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Kotak Ringkasan Kehadiran Bulan Ini */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Total Hari Hadir
+              {/* Tabel Riwayat Pribadi */}
+              {personalRecords.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-10 text-center text-muted-foreground border rounded-xl border-dashed">
+                  <Calendar className="size-8 text-muted-foreground/60 mb-2" />
+                  <p className="text-sm font-semibold text-foreground">Belum ada catatan presensi</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Tidak ditemukan data check-in Anda pada periode bulan {selectedMonth}.
+                  </p>
                 </div>
-                <div className="text-xl font-black text-slate-900 mt-0.5">
-                  {personalStats.total} <span className="text-xs font-normal text-slate-500">hari kerja</span>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-border/80">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead className="font-semibold text-xs">Tanggal</TableHead>
+                        <TableHead className="font-semibold text-xs">Masuk (WIB)</TableHead>
+                        <TableHead className="font-semibold text-xs">Pulang (WIB)</TableHead>
+                        <TableHead className="font-semibold text-xs">Status</TableHead>
+                        <TableHead className="font-semibold text-xs">Keterangan / Audit</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {personalRecords.map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-medium text-xs text-foreground">
+                            {formatDateDisplay(r.tanggal)}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs font-bold text-foreground tabular-nums">
+                            {formatTimeOnly(r.jam_masuk)}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground tabular-nums">
+                            {r.jam_pulang ? formatTimeOnly(r.jam_pulang) : '—'}
+                          </TableCell>
+                          <TableCell>
+                            <StatusPill kind="attendance" status={r.status} />
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {r.dikoreksi_oleh ? (
+                              <Badge
+                                variant="outline"
+                                className="bg-primary/5 text-primary border-primary/20 text-[10px]"
+                                title={`Alasan: ${r.alasan_koreksi}`}
+                              >
+                                Dikoreksi HRD
+                              </Badge>
+                            ) : !r.jam_pulang ? (
+                              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                Belum check-out
+                              </span>
+                            ) : (
+                              <span>—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-              </div>
-              <Calendar className="w-7 h-7 text-indigo-400 opacity-60" />
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-between">
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-                  Hadir Tepat Waktu
-                </div>
-                <div className="text-xl font-black text-emerald-900 mt-0.5">
-                  {personalStats.hadir} <span className="text-xs font-normal text-emerald-700">hari</span>
-                </div>
-              </div>
-              <CheckCircle2 className="w-7 h-7 text-emerald-500 opacity-60" />
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-100 flex items-center justify-between">
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                  Terlambat
-                </div>
-                <div className="text-xl font-black text-amber-900 mt-0.5">
-                  {personalStats.terlambat} <span className="text-xs font-normal text-amber-700">hari</span>
-                </div>
-              </div>
-              <Clock className="w-7 h-7 text-amber-500 opacity-60" />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
-                <tr>
-                  <th className="py-3 px-4">Tanggal</th>
-                  <th className="py-3 px-4">Masuk (WIB)</th>
-                  <th className="py-3 px-4">Pulang (WIB)</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Keterangan / Koreksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {personalRecords.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-400">
-                      Belum ada catatan absensi untuk akun Anda.
-                    </td>
-                  </tr>
-                ) : (
-                  personalRecords.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 px-4 font-medium text-slate-800">
-                        {formatDateDisplay(r.tanggal)}
-                      </td>
-                      <td className="py-3 px-4 font-mono font-semibold text-slate-700">
-                        {formatTimeOnly(r.jam_masuk)}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-slate-600">
-                        {r.jam_pulang ? formatTimeOnly(r.jam_pulang) : '-'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${
-                            r.status === 'hadir'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
-                          }`}
-                        >
-                          {r.status === 'hadir' ? 'Hadir' : 'Terlambat'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-500">
-                        {r.dikoreksi_oleh ? (
-                          <span
-                            className="inline-flex items-center gap-1 text-[11px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100"
-                            title={`Alasan: ${r.alasan_koreksi}`}
-                          >
-                            Dikoreksi HRD
-                          </span>
-                        ) : !r.jam_pulang ? (
-                          <span className="text-slate-400 text-[11px]">Belum check-out</span>
-                        ) : (
-                          <span className="text-slate-400 text-[11px]">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      {/* Konten Tab: Tim Divisi (Atasan) & Semua Karyawan (HRD) */}
+      {/* TAB 2 & 3: TIM DIVISI (ATASAN) & SEMUA KARYAWAN (HRD) */}
       {(activeTab === 'tim' || activeTab === 'semua') && (
-        <div className="space-y-6">
-          {/* Header Kontrol & Filter (Wireframe Hal. 2) */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-indigo-600" />
-                  <span>
-                    {activeTab === 'tim'
-                      ? 'Pemantauan Kehadiran Tim Divisi'
-                      : 'Absensi Harian Seluruh Karyawan'}
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Semua karyawan aktif · data dari server zona WIB
-                </p>
-              </div>
-
-              {/* Tombol Unduh CSV */}
-              <button
-                type="button"
-                onClick={handleExportCSV}
-                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold shadow-sm transition-all cursor-pointer"
-              >
-                <Download className="w-4 h-4 text-slate-500" />
-                <span>Unduh CSV</span>
-              </button>
-            </div>
-
-            {/* Filter Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                  Tanggal:
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                />
-              </div>
-
-              {currentUserRole === 'hrd' && (
+        <div className="space-y-5">
+          {/* 4 Kartu Metrik Ringkasan Harian dengan Warna Informatif */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Card className="border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-900/50 dark:bg-emerald-950/20 shadow-2xs">
+              <CardContent className="p-4 flex items-center justify-between">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                    Divisi:
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                    Hadir Tepat
+                  </p>
+                  <p className="font-mono text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    {summaryCounts.tepatWaktu}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    dari {dailyEmployeesData.length} staf
+                  </p>
+                </div>
+                <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                  <UserCheck className="size-4.5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-amber-200/80 bg-amber-50/40 dark:border-amber-900/50 dark:bg-amber-950/20 shadow-2xs">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                    Terlambat
+                  </p>
+                  <p className="font-mono text-2xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                    {summaryCounts.terlambat}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Melewati jam masuk</p>
+                </div>
+                <div className="flex size-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                  <Clock className="size-4.5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-blue-200/80 bg-blue-50/40 dark:border-blue-900/50 dark:bg-blue-950/20 shadow-2xs">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-blue-800 dark:text-blue-300">
+                    Cuti / Izin
+                  </p>
+                  <p className="font-mono text-2xl font-bold text-blue-600 dark:text-blue-400 mt-0.5">
+                    {summaryCounts.cutiSakitIzin}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Izin resmi disetujui</p>
+                </div>
+                <div className="flex size-9 items-center justify-center rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                  <Calendar className="size-4.5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-rose-200/80 bg-rose-50/40 dark:border-rose-900/50 dark:bg-rose-950/20 shadow-2xs">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-rose-800 dark:text-rose-300">
+                    Belum Hadir
+                  </p>
+                  <p className="font-mono text-2xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                    {summaryCounts.tanpaKeterangan}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Tanpa catatan presensi</p>
+                </div>
+                <div className="flex size-9 items-center justify-center rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                  <AlertTriangle className="size-4.5" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tabel Harian dengan Filter Tanggal & Divisi */}
+          <Card className="border-border/80 shadow-sm">
+            <CardHeader className="pb-3 border-b border-border/60">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-base font-bold text-foreground">
+                    {activeTab === 'tim'
+                      ? 'Pemantauan Presensi Tim Divisi'
+                      : 'Presensi Harian Seluruh Karyawan'}
+                  </CardTitle>
+                </div>
+                <Badge variant="outline" className="font-mono text-xs self-start sm:self-auto">
+                  {filteredDailyData.length} Karyawan Terdata
+                </Badge>
+              </div>
+
+              {/* Baris Filter: Tanggal, Divisi, Status, dan Search */}
+              <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label htmlFor="filter-tanggal" className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    Tanggal Presensi:
+                  </label>
+                  <Input
+                    id="filter-tanggal"
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="h-8 text-xs font-mono tabular-nums"
+                  />
+                </div>
+
+                {currentUserRole === 'hrd' && (
+                  <div>
+                    <label htmlFor="filter-divisi" className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                      Divisi:
+                    </label>
+                    <select
+                      id="filter-divisi"
+                      value={selectedDivisi}
+                      onChange={(e) => setSelectedDivisi(e.target.value)}
+                      className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25"
+                    >
+                      <option value="semua">Semua Divisi</option>
+                      {divisions.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nama}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="filter-status" className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    Status Presensi:
                   </label>
                   <select
-                    value={selectedDivisi}
-                    onChange={(e) => setSelectedDivisi(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    id="filter-status"
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25"
                   >
-                    <option value="semua">Semua Divisi</option>
-                    {divisions.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.nama}
-                      </option>
-                    ))}
+                    <option value="semua">Semua Status</option>
+                    <option value="hadir">Hadir Tepat Waktu</option>
+                    <option value="terlambat">Terlambat</option>
+                    <option value="cuti">Cuti / Sakit / Izin</option>
+                    <option value="absen">Belum Hadir / Alpa</option>
                   </select>
                 </div>
-              )}
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1">
-                  Status:
-                </label>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-800 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                >
-                  <option value="semua">Semua Status</option>
-                  <option value="hadir">Hadir Tepat Waktu</option>
-                  <option value="terlambat">Terlambat</option>
-                  <option value="cuti">Cuti / Sakit / Izin</option>
-                  <option value="absen">Tanpa Keterangan / Belum Hadir</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 4 Kotak Ringkasan (Wireframe Hal. 2) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Hadir Tepat Waktu
-                </div>
-                <div className="text-2xl font-black text-slate-900 mt-1">
-                  {summaryCounts.tepatWaktu}
+                <div>
+                  <label htmlFor="filter-search" className="text-[11px] font-semibold text-muted-foreground block mb-1">
+                    Pencarian Karyawan:
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="filter-search"
+                      type="text"
+                      placeholder="Cari nama atau NIK..."
+                      value={searchDaily}
+                      onChange={(e) => setSearchDaily(e.target.value)}
+                      className="h-8 pl-8 text-xs"
+                    />
+                  </div>
                 </div>
               </div>
+            </CardHeader>
 
-              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-100">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
-                  Terlambat
+            <CardContent className="p-0">
+              {filteredDailyData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+                  <Users className="size-8 text-muted-foreground/60 mb-2" />
+                  <p className="text-sm font-semibold text-foreground">Tidak ada data karyawan</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
+                    Tidak ditemukan data yang cocok dengan kriteria filter tanggal dan status yang dipilih.
+                  </p>
                 </div>
-                <div className="text-2xl font-black text-amber-900 mt-1">
-                  {summaryCounts.terlambat}
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-blue-700">
-                  Cuti, Sakit, Izin
-                </div>
-                <div className="text-2xl font-black text-blue-900 mt-1">
-                  {summaryCounts.cutiSakitIzin}
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-100/70 border border-slate-200">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Tanpa Keterangan
-                </div>
-                <div className="text-2xl font-black text-slate-700 mt-1">
-                  {summaryCounts.tanpaKeterangan}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Tabel Absensi Harian */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
-                  <tr>
-                    <th className="py-3 px-3">NIK</th>
-                    <th className="py-3 px-3">Nama</th>
-                    <th className="py-3 px-3">Divisi</th>
-                    <th className="py-3 px-3">Masuk</th>
-                    <th className="py-3 px-3">Pulang</th>
-                    <th className="py-3 px-3">Status</th>
-                    <th className="py-3 px-3">Catatan</th>
-                    {currentUserRole === 'hrd' && (
-                      <th className="py-3 px-3 text-right">Aksi</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredDailyData.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={currentUserRole === 'hrd' ? 8 : 7}
-                        className="py-8 text-center text-slate-400"
-                      >
-                        Tidak ada data karyawan yang cocok dengan filter yang dipilih.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredDailyData.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 px-3 font-mono font-semibold text-slate-700">
-                          {item.nik}
-                        </td>
-                        <td className="py-3 px-3 font-medium text-slate-900">
-                          {item.nama}
-                        </td>
-                        <td className="py-3 px-3 text-slate-600">
-                          {item.divisi}
-                        </td>
-                        <td className="py-3 px-3 font-mono text-slate-700">
-                          {item.masuk}
-                        </td>
-                        <td className="py-3 px-3 font-mono text-slate-700">
-                          {item.pulang}
-                        </td>
-                        <td className="py-3 px-3">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${
-                              item.statusType === 'hadir'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : item.statusType === 'terlambat'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : item.statusType === 'cuti'
-                                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                : 'bg-slate-100 text-slate-500 border-slate-200'
-                            }`}
-                          >
-                            {item.statusText}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-slate-500 text-[11px]">
-                          {item.catatan}
-                        </td>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead className="font-semibold text-xs">NIK</TableHead>
+                        <TableHead className="font-semibold text-xs">Nama Karyawan</TableHead>
+                        <TableHead className="font-semibold text-xs">Divisi</TableHead>
+                        <TableHead className="font-semibold text-xs">Masuk (WIB)</TableHead>
+                        <TableHead className="font-semibold text-xs">Pulang (WIB)</TableHead>
+                        <TableHead className="font-semibold text-xs">Status</TableHead>
+                        <TableHead className="font-semibold text-xs">Catatan</TableHead>
                         {currentUserRole === 'hrd' && (
-                          <td className="py-3 px-3 text-right">
-                            {item.attRecord ? (
-                              <button
-                                type="button"
-                                onClick={() => openKoreksiModal(item.attRecord!)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-all cursor-pointer"
-                              >
-                                <Edit3 className="w-3.5 h-3.5 text-indigo-600" />
-                                <span>Koreksi</span>
-                              </button>
-                            ) : (
-                              <span className="text-slate-300 text-xs">-</span>
-                            )}
-                          </td>
+                          <TableHead className="font-semibold text-xs text-right">Aksi</TableHead>
                         )}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDailyData.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-mono text-xs font-bold text-foreground tabular-nums">
+                            {item.nik}
+                          </TableCell>
+                          <TableCell className="font-medium text-xs text-foreground">
+                            {item.nama}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {item.divisi}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs font-semibold text-foreground tabular-nums">
+                            {item.masuk}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground tabular-nums">
+                            {item.pulang}
+                          </TableCell>
+                          <TableCell>
+                            <DailyAttendancePill
+                              statusType={item.statusType}
+                              statusText={item.statusText}
+                            />
+                          </TableCell>
+                          <TableCell className="text-[11px] text-muted-foreground">
+                            {item.catatan}
+                          </TableCell>
+                          {currentUserRole === 'hrd' && (
+                            <TableCell className="text-right">
+                              {item.attRecord ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="xs"
+                                  onClick={() => openKoreksiModal(item.attRecord!)}
+                                  className="gap-1 font-semibold text-primary hover:text-primary hover:border-primary/40 text-xs"
+                                >
+                                  <Edit3 className="size-3" />
+                                  <span>Koreksi</span>
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground/40">—</span>
+                              )}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* MODAL KOREKSI ABSENSI OLEH HRD (BR-03 & BR-12) */}
       {koreksiModalOpen && selectedRecordForKoreksi && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                  <Edit3 className="w-4 h-4" />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="koreksi-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+        >
+          <Card className="w-full max-w-lg border-border/80 shadow-2xl animate-in zoom-in-95 duration-200">
+            <CardHeader className="pb-3 border-b border-border/60">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Edit3 className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle id="koreksi-title" className="text-base font-bold text-foreground">
+                      Koreksi Absensi Karyawan
+                    </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                      Kewenangan Khusus HRD · Tercatat Resmi di Audit Log (BR-03 & BR-12)
+                    </CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    Koreksi Absensi Karyawan
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Khusus HRD · Tercatat di Audit Log (BR-03 & BR-12)
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => setKoreksiModalOpen(false)}
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+            </CardHeader>
+
+            <form onSubmit={handleSaveKoreksi}>
+              <CardContent className="space-y-4 pt-4">
+                {koreksiError && (
+                  <Alert variant="destructive" className="py-2.5 px-3">
+                    <AlertCircle className="size-4" />
+                    <AlertDescription className="text-xs">{koreksiError}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3 space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tanggal Presensi:</span>
+                    <span className="font-semibold text-foreground">
+                      {formatDateDisplay(selectedRecordForKoreksi.tanggal)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ID Catatan:</span>
+                    <span className="font-mono text-muted-foreground">
+                      {selectedRecordForKoreksi.id}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <FormField label="Jam Masuk (HH:MM WIB)" htmlFor="koreksi-jam-masuk" required>
+                    <Input
+                      id="koreksi-jam-masuk"
+                      type="time"
+                      required
+                      value={koreksiJamMasuk}
+                      onChange={(e) => setKoreksiJamMasuk(e.target.value)}
+                      className="font-mono text-xs tabular-nums"
+                    />
+                  </FormField>
+
+                  <FormField label="Jam Pulang (HH:MM WIB)" htmlFor="koreksi-jam-pulang">
+                    <Input
+                      id="koreksi-jam-pulang"
+                      type="time"
+                      value={koreksiJamPulang}
+                      onChange={(e) => setKoreksiJamPulang(e.target.value)}
+                      className="font-mono text-xs tabular-nums"
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="Status Kehadiran" htmlFor="koreksi-status" required>
+                  <select
+                    id="koreksi-status"
+                    value={koreksiStatus}
+                    onChange={(e) => setKoreksiStatus(e.target.value as 'hadir' | 'terlambat')}
+                    className="h-9 w-full rounded-lg border border-input bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25"
+                  >
+                    <option value="hadir">Hadir Tepat Waktu</option>
+                    <option value="terlambat">Terlambat</option>
+                  </select>
+                </FormField>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="koreksi-alasan" className="text-xs font-semibold text-foreground">
+                      Alasan Koreksi <span className="text-destructive">*</span>
+                    </label>
+                    <span
+                      className={cn(
+                        'text-[11px] font-mono font-semibold tabular-nums',
+                        koreksiAlasan.trim().length >= 10
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-muted-foreground'
+                      )}
+                    >
+                      {koreksiAlasan.trim().length} / min. 10 karakter
+                    </span>
+                  </div>
+
+                  <Textarea
+                    id="koreksi-alasan"
+                    rows={3}
+                    required
+                    value={koreksiAlasan}
+                    onChange={(e) => setKoreksiAlasan(e.target.value)}
+                    placeholder="Contoh: Karyawan hadir tepat waktu namun mesin fingerprint gerbang utama sedang perbaikan jaringan."
+                    className="text-xs resize-none"
+                  />
+
+                  <p className="text-[11px] text-muted-foreground">
+                    Aturan <strong>BR-03</strong>: Alasan koreksi wajib diisi minimal 10 karakter dan tersimpan di audit trail.
                   </p>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setKoreksiModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+              </CardContent>
 
-            <form onSubmit={handleSaveKoreksi} className="mt-4 space-y-4 text-xs">
-              {koreksiError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{koreksiError}</span>
-                </div>
-              )}
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="font-semibold text-slate-800">
-                  Tanggal: {formatDateDisplay(selectedRecordForKoreksi.tanggal)}
-                </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
-                  ID Absensi: <span className="font-mono">{selectedRecordForKoreksi.id}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Jam Masuk (HH:MM WIB) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={koreksiJamMasuk}
-                    onChange={(e) => setKoreksiJamMasuk(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-mono font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    Jam Pulang (HH:MM WIB)
-                  </label>
-                  <input
-                    type="time"
-                    value={koreksiJamPulang}
-                    onChange={(e) => setKoreksiJamPulang(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-mono font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  Status Kehadiran <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={koreksiStatus}
-                  onChange={(e) => setKoreksiStatus(e.target.value as 'hadir' | 'terlambat')}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                >
-                  <option value="hadir">Hadir (Tepat Waktu)</option>
-                  <option value="terlambat">Terlambat</option>
-                </select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-[11px] font-bold text-slate-700">
-                    Alasan Koreksi <span className="text-rose-500">* (Min. 10 karakter - BR-03)</span>
-                  </label>
-                  <span
-                    className={`text-[10px] font-semibold ${
-                      koreksiAlasan.trim().length >= 10 ? 'text-emerald-600' : 'text-slate-400'
-                    }`}
-                  >
-                    {koreksiAlasan.trim().length}/10 karakter
-                  </span>
-                </div>
-                <textarea
-                  rows={3}
-                  required
-                  value={koreksiAlasan}
-                  onChange={(e) => setKoreksiAlasan(e.target.value)}
-                  placeholder="Contoh: Karyawan hadir tepat waktu namun terkendala pada pemindai fingerprint gerbang utama."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                <button
+              <CardFooter className="flex items-center justify-end gap-2 border-t border-border/60 bg-muted/20 p-4 rounded-b-xl">
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setKoreksiModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 cursor-pointer"
                 >
                   Batal
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={koreksiSubmitting || koreksiAlasan.trim().length < 10}
-                  className={`px-4 py-2 rounded-xl text-white font-semibold flex items-center gap-1.5 transition-all ${
-                    koreksiAlasan.trim().length >= 10 && !koreksiSubmitting
-                      ? 'bg-indigo-600 hover:bg-indigo-700 cursor-pointer shadow-sm'
-                      : 'bg-slate-300 cursor-not-allowed'
-                  }`}
+                  className="gap-1.5 font-semibold text-xs"
                 >
-                  {koreksiSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Simpan Koreksi</span>
-                </button>
-              </div>
+                  {koreksiSubmitting && <Loader2 className="size-3.5 animate-spin" />}
+                  <span>Simpan Koreksi Absensi</span>
+                </Button>
+              </CardFooter>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </div>

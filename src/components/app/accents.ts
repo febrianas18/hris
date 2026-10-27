@@ -10,7 +10,7 @@
  *
  * Semua class ditulis literal agar terdeteksi pemindai Tailwind.
  */
-export type Accent = 'primary' | 'info' | 'warning' | 'danger' | 'neutral';
+export type Accent = 'primary' | 'info' | 'warning' | 'danger' | 'neutral' | 'success';
 
 export interface AccentStyle {
   bar: string;
@@ -23,43 +23,51 @@ export interface AccentStyle {
 
 export const ACCENT_STYLES: Record<Accent, AccentStyle> = {
   primary: {
-    bar: 'from-[#0f7a5f] via-[#43b992] to-[#a9eed7]',
-    tile: 'bg-[#b9f0dc] text-[#0b5b45]',
-    surface: 'bg-[#d9f5e8]',
-    header: 'from-[#c7f1df] via-[#ddf8ec] to-[#eefcf6]',
-    soft: 'bg-[#c9f2e1] text-[#0b5b45] ring-[#8edcc1]',
-    dot: 'bg-[#0f7a5f]',
+    bar: 'from-primary to-primary/60',
+    tile: 'bg-primary/10 text-primary',
+    surface: 'bg-card border-border/80',
+    header: 'bg-muted/20 border-border/60',
+    soft: 'bg-primary/10 text-primary ring-primary/20',
+    dot: 'bg-primary',
+  },
+  success: {
+    bar: 'from-emerald-600 to-teal-500',
+    tile: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    surface: 'bg-card border-border/80',
+    header: 'bg-muted/20 border-border/60',
+    soft: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-emerald-500/20',
+    dot: 'bg-emerald-500',
   },
   info: {
-    bar: 'from-[#1d5f8f] via-[#62a8d8] to-[#b9e1ff]',
-    tile: 'bg-[#c2e2ff] text-[#134a78]',
-    surface: 'bg-[#dcecff]',
-    header: 'from-[#c9e2ff] via-[#e0efff] to-[#f2f9ff]',
-    soft: 'bg-[#cfe5ff] text-[#134a78] ring-[#9fcdf5]',
-    dot: 'bg-[#1d5f8f]',
+    bar: 'from-blue-600 to-indigo-500',
+    tile: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    surface: 'bg-card border-border/80',
+    header: 'bg-muted/20 border-border/60',
+    soft: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 ring-blue-500/20',
+    dot: 'bg-blue-600',
   },
   warning: {
-    bar: 'from-[#a96f00] via-[#e5ad2a] to-[#ffe9a8]',
-    tile: 'bg-[#ffe09a] text-[#6b4a00]',
-    surface: 'bg-[#fff0c7]',
-    header: 'from-[#ffe6a3] via-[#fff1cb] to-[#fffaeb]',
-    soft: 'bg-[#ffe9ad] text-[#6b4a00] ring-[#efc65f]',
-    dot: 'bg-[#a96f00]',
+    bar: 'from-amber-500 to-orange-500',
+    tile: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    surface: 'bg-card border-border/80',
+    header: 'bg-muted/20 border-border/60',
+    soft: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-amber-500/20',
+    dot: 'bg-amber-500',
   },
   danger: {
-    bar: 'from-[#a5263d] via-[#e46d82] to-[#ffc3ce]',
-    tile: 'bg-[#ffc3ce] text-[#7a1f31]',
-    surface: 'bg-[#ffdfe4]',
-    header: 'from-[#ffcbd4] via-[#ffe3e8] to-[#fff3f5]',
-    soft: 'bg-[#ffcbd4] text-[#7a1f31] ring-[#f49aab]',
-    dot: 'bg-[#a5263d]',
+    bar: 'from-rose-500 to-red-500',
+    tile: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+    surface: 'bg-card border-border/80',
+    header: 'bg-muted/20 border-border/60',
+    soft: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 ring-rose-500/20',
+    dot: 'bg-rose-500',
   },
   neutral: {
-    bar: 'from-[#4d3f78] via-[#9c8ad1] to-[#e2d9ff]',
-    tile: 'bg-[#ddd3ff] text-[#3b2c6b]',
-    surface: 'bg-[#ece6ff]',
-    header: 'from-[#e0d8ff] via-[#eee9ff] to-[#faf7ff]',
-    soft: 'bg-[#e3dbff] text-[#3b2c6b] ring-[#c3b4f2]',
-    dot: 'bg-[#4d3f78]',
+    bar: 'from-slate-600 to-slate-400',
+    tile: 'bg-muted text-muted-foreground',
+    surface: 'bg-card border-border/80',
+    header: 'bg-muted/20 border-border/60',
+    soft: 'bg-muted text-muted-foreground ring-border',
+    dot: 'bg-muted-foreground',
   },
 };

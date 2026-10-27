@@ -17,24 +17,25 @@ export default function PrintHeaderBar({ nomorSlip, namaKaryawan }: PrintHeaderB
   };
 
   return (
-    <div className="max-w-3xl mx-auto mb-6 flex items-center justify-between gap-4 print:hidden bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
+    <div className="mx-auto mb-5 flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-card p-3 shadow-xs print:hidden">
       <Link
         href="/slip-gaji"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+        className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-xs font-semibold text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowLeft aria-hidden="true" className="size-4" strokeWidth={1.75} />
         <span>Kembali ke Slip Gaji</span>
       </Link>
 
-      <div className="flex items-center gap-3">
-        <span className="hidden sm:inline-block text-xs text-slate-400">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="hidden text-[11px] text-muted-foreground tabular-nums sm:inline-block">
           {nomorSlip} · {namaKaryawan}
         </span>
         <button
+          type="button"
           onClick={handlePrint}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-all active:scale-95"
+          className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-primary px-3.5 text-xs font-semibold text-primary-foreground transition-colors duration-200 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <Printer className="w-4 h-4" />
+          <Printer aria-hidden="true" className="size-4" strokeWidth={1.75} />
           <span>Cetak / Simpan PDF</span>
         </button>
       </div>

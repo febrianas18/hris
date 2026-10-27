@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getAuthUser } from '@/utils/auth';
+import { notifyPemohonLeaveStatus } from '@/utils/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, peran, aktif, divisi_id')
+      .select('id, nama_lengkap, peran, aktif, divisi_id')
       .eq('id', user.id)
       .single();
 
@@ -57,6 +58,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Ambil data pengajuan sebelum ditolak untuk kebutuhan notifikasi
+    const { data: pengajuanInfo } = await supabase
+      .from('pengajuan_cuti')
+      .select('karyawan_id, jenis, tanggal_mulai, tanggal_selesai, jumlah_hari, karyawan:karyawan_id(email, nama_lengkap)')
+      .eq('id', pengajuan_id)
+      .maybeSingle();
+
     // Eksekusi fungsi penolakan di PostgreSQL
     const { data: updated, error: rpcErr } = await supabase.rpc(
       'fn_reject_pengajuan',
@@ -70,6 +78,28 @@ export async function POST(req: NextRequest) {
     if (rpcErr) {
       return NextResponse.json({ success: false, error: rpcErr.message }, { status: 400 });
     }
+
+    // Notifikasi Email ke Pemohon bahwa pengajuan ditolak (PRD Bab 11)
+    (async () => {
+      try {
+        const pemohon = (pengajuanInfo as any)?.karyawan;
+        if (pemohon?.email && pengajuanInfo) {
+          await notifyPemohonLeaveStatus({
+            pemohonEmail: pemohon.email,
+            pemohonNama: pemohon.nama_lengkap,
+            jenis: pengajuanInfo.jenis,
+            status: 'ditolak',
+            tanggalMulai: pengajuanInfo.tanggal_mulai,
+            tanggalSelesai: pengajuanInfo.tanggal_selesai,
+            jumlahHari: pengajuanInfo.jumlah_hari,
+            alasanPenolakan: trimmedAlasan,
+            diprosesOlehNama: profile.nama_lengkap || 'Atasan / HRD',
+          });
+        }
+      } catch (emailErr) {
+        console.warn('[EMAIL NOTIFICATION REJECT DISPATCH FAILED]', emailErr);
+      }
+    })();
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatRupiah, terbilang, formatPeriodeBulan } from '@/utils/formatters';
-import { CheckCircle2, ShieldCheck, Building2, Calendar, FileText } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, Building2, Clock, FileText } from 'lucide-react';
 
 export interface PayslipData {
   id: string;
@@ -40,6 +40,11 @@ interface PayslipDocumentProps {
   isPrintMode?: boolean;
 }
 
+/**
+ * Lembar slip gaji. Selalu dirender sebagai kertas putih dengan teks gelap
+ * agar hasil cetak (A4) konsisten, termasuk saat aplikasi memakai tema gelap.
+ * Semua warna eksplisit (hitam/putih) dibatasi di dalam komponen ini.
+ */
 export default function PayslipDocument({ slip, isPrintMode = false }: PayslipDocumentProps) {
   const isTerbit = slip.status === 'terbit';
   const subtotalPenghasilan = Number(slip.gaji_pokok) + Number(slip.tunjangan);
@@ -60,78 +65,91 @@ export default function PayslipDocument({ slip, isPrintMode = false }: PayslipDo
 
   return (
     <div
-      className={`bg-white text-slate-800 rounded-2xl border border-slate-200/90 shadow-sm max-w-3xl mx-auto overflow-hidden payslip-container ${
-        isPrintMode ? 'p-8 border-none shadow-none print:p-0' : 'p-6 sm:p-10'
+      className={`payslip-container mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-black/10 bg-white text-black shadow-sm print:max-w-none print:overflow-visible print:rounded-none print:border-0 print:shadow-none ${
+        isPrintMode ? 'p-6 sm:p-10 print:p-0' : 'p-5 sm:p-8'
       }`}
     >
       {/* 1. Header Perusahaan & Kop Surat */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between pb-6 border-b-2 border-slate-800/80 gap-4">
-        <div className="flex items-start gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-sm">
-            <Building2 className="w-6 h-6" />
+      <div className="flex flex-col justify-between gap-4 border-b border-black/15 pb-5 sm:flex-row sm:items-start">
+        <div className="flex items-start gap-3">
+          <div
+            aria-hidden="true"
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-black/15 bg-black/[0.04]"
+          >
+            <Building2 className="size-5" strokeWidth={1.75} />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h2 className="font-heading text-lg font-semibold tracking-tight text-black sm:text-xl">
               PT KARSA LINTAS NUSANTARA
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
-              Distribusi Logistik & Pergudangan Terpadu
+            <p className="mt-0.5 text-xs font-medium text-black/60">
+              Distribusi Logistik &amp; Pergudangan Terpadu
             </p>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="mt-1 text-[11px] leading-relaxed text-black/50">
               Jl. Cut Mutia No. 88, Bekasi Timur, Jawa Barat 17113 · (021) 8899-7700
             </p>
           </div>
         </div>
 
-        <div className="text-left sm:text-right shrink-0">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200 mb-2">
-            <FileText className="w-3.5 h-3.5" />
+        <div className="shrink-0 text-left sm:text-right">
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-black/15 bg-black/[0.04] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/70">
+            <FileText aria-hidden="true" className="size-3" strokeWidth={1.75} />
             SLIP GAJI RESMI
           </div>
-          <div className="text-lg font-bold text-slate-900">
+          <div className="font-heading text-base font-semibold tracking-tight text-black">
             {formatPeriodeBulan(slip.periode)}
           </div>
-          <div className="text-xs font-mono text-slate-500 mt-0.5">
+          <div className="mt-0.5 font-mono text-[11px] tabular-nums text-black/60">
             No: {slip.nomor_slip || '(DRAF - Belum Terbit)'}
           </div>
         </div>
       </div>
 
       {/* 2. Informasi Karyawan & Status Slip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-5 bg-slate-50/75 rounded-xl border border-slate-100 px-4 sm:px-6 my-6 text-xs sm:text-sm">
+      <div className="my-5 grid grid-cols-1 gap-4 rounded-xl border border-black/10 bg-black/[0.02] px-4 py-4 text-xs sm:grid-cols-2 sm:px-5">
         <div className="space-y-2">
-          <div className="flex">
-            <span className="w-32 text-slate-500">Nama Karyawan</span>
-            <span className="font-semibold text-slate-900">: {slip.karyawan?.nama_lengkap || '-'}</span>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 text-black/60">Nama Karyawan</span>
+            <span className="font-semibold text-black">: {slip.karyawan?.nama_lengkap || '-'}</span>
           </div>
-          <div className="flex">
-            <span className="w-32 text-slate-500">Nomor Induk (NIK)</span>
-            <span className="font-mono font-medium text-slate-800">: {slip.karyawan?.nik_karyawan || '-'}</span>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 text-black/60">Nomor Induk (NIK)</span>
+            <span className="font-mono font-medium tabular-nums text-black">
+              : {slip.karyawan?.nik_karyawan || '-'}
+            </span>
           </div>
-          <div className="flex">
-            <span className="w-32 text-slate-500">Jabatan</span>
-            <span className="text-slate-800">: {slip.karyawan?.jabatan || '-'}</span>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 text-black/60">Jabatan</span>
+            <span className="text-black">: {slip.karyawan?.jabatan || '-'}</span>
           </div>
         </div>
 
         <div className="space-y-2">
-          <div className="flex">
-            <span className="w-32 text-slate-500">Divisi</span>
-            <span className="text-slate-800">: {slip.karyawan?.divisi?.nama || '-'}</span>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 text-black/60">Divisi</span>
+            <span className="text-black">: {slip.karyawan?.divisi?.nama || '-'}</span>
           </div>
-          <div className="flex">
-            <span className="w-32 text-slate-500">Status Kepegawaian</span>
-            <span className="text-slate-800">: {slip.karyawan?.status_kerja ? slip.karyawan.status_kerja.toUpperCase() : '-'}</span>
+          <div className="flex gap-2">
+            <span className="w-36 shrink-0 text-black/60">Status Kepegawaian</span>
+            <span className="text-black">
+              :{' '}
+              {slip.karyawan?.status_kerja
+                ? slip.karyawan.status_kerja.toUpperCase()
+                : '-'}
+            </span>
           </div>
-          <div className="flex items-center">
-            <span className="w-32 text-slate-500">Status Pembayaran</span>
-            <span className="inline-flex items-center gap-1 font-semibold">
-              : {isTerbit ? (
-                <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded text-xs font-bold uppercase">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Terbit & Terkunci
+          <div className="flex items-center gap-2">
+            <span className="w-36 shrink-0 text-black/60">Status Pembayaran</span>
+            <span className="inline-flex items-center gap-1.5">
+              :
+              {isTerbit ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-black/15 bg-black/[0.06] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-black">
+                  <CheckCircle2 aria-hidden="true" className="size-3" strokeWidth={1.75} />
+                  Terbit &amp; Terkunci
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-100/90 px-2 py-0.5 rounded text-xs font-bold uppercase">
+                <span className="inline-flex items-center gap-1 rounded-full border border-black/15 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-black/70">
+                  <Clock aria-hidden="true" className="size-3" strokeWidth={1.75} />
                   Draf (Belum Sah)
                 </span>
               )}
@@ -141,72 +159,80 @@ export default function PayslipDocument({ slip, isPrintMode = false }: PayslipDo
       </div>
 
       {/* 3. Tabel Rincian Penghasilan dan Potongan */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 my-6">
+      <div className="my-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
         {/* Kolom Kiri: Penghasilan */}
-        <div className="border border-slate-200 rounded-xl overflow-hidden">
-          <div className="bg-slate-100/90 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
-            <span className="font-bold text-xs uppercase tracking-wider text-slate-700">
+        <div className="overflow-hidden rounded-xl border border-black/15">
+          <div className="flex items-center justify-between gap-2 border-b border-black/10 bg-black/[0.03] px-4 py-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-black/70">
               A. Penghasilan
             </span>
-            <span className="text-[11px] font-semibold text-slate-500">Nominal (IDR)</span>
+            <span className="text-[11px] font-medium text-black/50">Nominal (IDR)</span>
           </div>
-          <div className="p-4 space-y-3 text-sm">
-            <div className="flex justify-between items-center text-slate-600">
+          <div className="space-y-3 p-4 text-xs">
+            <div className="flex items-center justify-between gap-3 text-black/60">
               <span>Gaji Pokok</span>
-              <span className="font-mono font-medium text-slate-900">{formatRupiah(slip.gaji_pokok)}</span>
+              <span className="font-mono font-medium tabular-nums text-black">
+                {formatRupiah(slip.gaji_pokok)}
+              </span>
             </div>
-            <div className="flex justify-between items-center text-slate-600">
+            <div className="flex items-center justify-between gap-3 text-black/60">
               <span>Tunjangan Operasional/Lain</span>
-              <span className="font-mono font-medium text-slate-900">{formatRupiah(slip.tunjangan)}</span>
+              <span className="font-mono font-medium tabular-nums text-black">
+                {formatRupiah(slip.tunjangan)}
+              </span>
             </div>
-            <div className="pt-3 border-t border-dashed border-slate-200 flex justify-between items-center font-bold text-slate-900">
+            <div className="flex items-center justify-between gap-3 border-t border-dashed border-black/15 pt-2.5 font-semibold text-black">
               <span>Total Penghasilan (Kotor)</span>
-              <span className="font-mono text-emerald-700">{formatRupiah(subtotalPenghasilan)}</span>
+              <span className="font-mono tabular-nums">{formatRupiah(subtotalPenghasilan)}</span>
             </div>
           </div>
         </div>
 
         {/* Kolom Kanan: Potongan */}
-        <div className="border border-slate-200 rounded-xl overflow-hidden">
-          <div className="bg-slate-100/90 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center">
-            <span className="font-bold text-xs uppercase tracking-wider text-slate-700">
+        <div className="overflow-hidden rounded-xl border border-black/15">
+          <div className="flex items-center justify-between gap-2 border-b border-black/10 bg-black/[0.03] px-4 py-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-black/70">
               B. Potongan
             </span>
-            <span className="text-[11px] font-semibold text-slate-500">Nominal (IDR)</span>
+            <span className="text-[11px] font-medium text-black/50">Nominal (IDR)</span>
           </div>
-          <div className="p-4 space-y-3 text-sm">
-            <div className="flex justify-between items-center text-slate-600">
+          <div className="space-y-3 p-4 text-xs">
+            <div className="flex items-center justify-between gap-3 text-black/60">
               <span>Potongan (BPJS / PPh / Absensi)</span>
-              <span className="font-mono font-medium text-rose-600">{formatRupiah(slip.potongan)}</span>
+              <span className="font-mono font-medium tabular-nums text-black">
+                {formatRupiah(slip.potongan)}
+              </span>
             </div>
-            <div className="flex justify-between items-center text-slate-400 text-xs italic">
+            <div className="flex items-center justify-between gap-3 text-[11px] italic text-black/50">
               <span>Potongan Lainnya</span>
-              <span className="font-mono">Rp 0</span>
+              <span className="font-mono tabular-nums">Rp 0</span>
             </div>
-            <div className="pt-3 border-t border-dashed border-slate-200 flex justify-between items-center font-bold text-slate-900">
+            <div className="flex items-center justify-between gap-3 border-t border-dashed border-black/15 pt-2.5 font-semibold text-black">
               <span>Total Potongan</span>
-              <span className="font-mono text-rose-600">({formatRupiah(totalPotongan)})</span>
+              <span className="font-mono tabular-nums">({formatRupiah(totalPotongan)})</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* 4. Total Diterima (Take Home Pay) */}
-      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-5 sm:p-6 my-6 shadow-md">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div className="my-5 rounded-xl border border-black/20 bg-black/[0.04] px-4 py-4 sm:px-5">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <div className="text-xs uppercase tracking-wider text-indigo-200 font-semibold flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-black/60">
+              <ShieldCheck aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
               Total Gaji Bersih Diterima (Take Home Pay)
             </div>
-            <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white mt-1">
+            <div className="mt-1.5 font-heading text-2xl font-semibold tracking-tight text-black tabular-nums sm:text-3xl">
               {formatRupiah(totalDiterima)}
             </div>
           </div>
-          <div className="text-left sm:text-right max-w-sm">
-            <div className="text-[11px] uppercase tracking-wider text-indigo-300 font-medium">Terbilang:</div>
-            <div className="text-xs sm:text-sm font-medium italic text-indigo-100 mt-0.5 capitalize">
-              "{terbilang(totalDiterima)}"
+          <div className="max-w-xs text-left sm:text-right">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-black/50">
+              Terbilang:
+            </div>
+            <div className="mt-0.5 text-xs italic leading-relaxed text-black/70 capitalize">
+              &ldquo;{terbilang(totalDiterima)}&rdquo;
             </div>
           </div>
         </div>
@@ -214,40 +240,43 @@ export default function PayslipDocument({ slip, isPrintMode = false }: PayslipDo
 
       {/* Catatan / Keterangan Tambahan */}
       {slip.catatan && (
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 my-4 text-xs text-slate-600">
-          <span className="font-bold text-slate-800">Catatan HRD: </span>
+        <div className="my-4 rounded-xl border border-black/10 bg-black/[0.02] px-4 py-3 text-[11px] leading-relaxed text-black/70">
+          <span className="font-semibold text-black">Catatan HRD: </span>
           {slip.catatan}
         </div>
       )}
 
       {/* 5. Tanda Tangan & Pengesahan */}
-      <div className="grid grid-cols-2 gap-8 pt-8 mt-6 border-t border-slate-200 text-xs sm:text-sm">
+      <div className="mt-6 grid grid-cols-2 gap-6 border-t border-black/10 pt-6 text-xs">
         <div className="text-center">
-          <p className="text-slate-500 font-medium mb-16">Penerima (Karyawan),</p>
-          <p className="font-bold text-slate-900 underline decoration-slate-300 underline-offset-4">
+          <p className="mb-14 font-medium text-black/60">Penerima (Karyawan),</p>
+          <p className="font-semibold text-black underline decoration-black/20 underline-offset-4">
             {slip.karyawan?.nama_lengkap || 'Karyawan'}
           </p>
-          <p className="text-xs text-slate-500 font-mono mt-0.5">
+          <p className="mt-0.5 font-mono text-[11px] tabular-nums text-black/60">
             NIK: {slip.karyawan?.nik_karyawan || '-'}
           </p>
         </div>
 
         <div className="text-center">
-          <p className="text-slate-500 font-medium mb-16">
+          <p className="mb-14 font-medium text-black/60">
             Diterbitkan oleh PT Karsa Lintas Nusantara,
           </p>
-          <p className="font-bold text-slate-900 underline decoration-slate-300 underline-offset-4">
+          <p className="font-semibold text-black underline decoration-black/20 underline-offset-4">
             {slip.publisher?.nama_lengkap || 'Human Resources Department'}
           </p>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {tanggalTerbitStr !== '-' ? `Disahkan pada: ${tanggalTerbitStr}` : 'HRD PT Karsa Lintas Nusantara'}
+          <p className="mt-0.5 text-[11px] leading-relaxed text-black/60">
+            {tanggalTerbitStr !== '-'
+              ? `Disahkan pada: ${tanggalTerbitStr}`
+              : 'HRD PT Karsa Lintas Nusantara'}
           </p>
         </div>
       </div>
 
       {/* Footer Disclaimer */}
-      <div className="mt-8 pt-4 border-t border-slate-100 text-center text-[11px] text-slate-400">
-        Dokumen ini bersifat rahasia (Sesuai Aturan BR-11 & BR-12). Sah dicetak secara elektronik oleh Sistem Informasi HRIS PT Karsa Lintas Nusantara tanpa tanda tangan basah.
+      <div className="mt-6 border-t border-black/10 pt-3 text-center text-[11px] leading-relaxed text-black/50">
+        Dokumen ini bersifat rahasia (Sesuai Aturan BR-11 &amp; BR-12). Sah dicetak secara
+        elektronik oleh Sistem Informasi HRIS PT Karsa Lintas Nusantara tanpa tanda tangan basah.
       </div>
     </div>
   );

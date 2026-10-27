@@ -8,7 +8,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   CartesianGrid,
 } from 'recharts';
 import { WeeklyAttendanceStat } from '@/utils/analytics';
@@ -16,79 +15,109 @@ import { WeeklyAttendanceStat } from '@/utils/analytics';
 interface AttendanceStackedBarChartProps {
   data: WeeklyAttendanceStat[];
   height?: number;
+  showLegend?: boolean;
 }
+
+const CHART_COLORS = {
+  hadir: '#10b981',
+  terlambat: '#f59e0b',
+  cuti_izin: '#3b82f6',
+  tanpa_keterangan: '#ef4444',
+};
+
+const LEGEND_ITEMS = [
+  { key: 'hadir', label: 'Hadir tepat waktu', color: CHART_COLORS.hadir },
+  { key: 'terlambat', label: 'Terlambat', color: CHART_COLORS.terlambat },
+  { key: 'cuti_izin', label: 'Cuti / Sakit / Izin', color: CHART_COLORS.cuti_izin },
+  { key: 'tanpa_keterangan', label: 'Tanpa keterangan', color: CHART_COLORS.tanpa_keterangan },
+];
+
+const AXIS_COLOR = 'var(--muted-foreground)';
+const GRID_COLOR = 'var(--border)';
+
+const LABELS: Record<string, string> = {
+  hadir: 'Hadir Tepat Waktu',
+  terlambat: 'Terlambat',
+  cuti_izin: 'Cuti / Sakit / Izin',
+  tanpa_keterangan: 'Tanpa Keterangan (Alpa)',
+};
 
 export default function AttendanceStackedBarChart({
   data,
-  height = 320,
+  height = 260,
+  showLegend = true,
 }: AttendanceStackedBarChartProps) {
   return (
-    <div className="w-full" style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data}
-          margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-          <XAxis
-            dataKey="minggu"
-            stroke="#64748b"
-            fontSize={12}
-            tickLine={false}
-            axisLine={{ stroke: '#e2e8f0' }}
-          />
-          <YAxis
-            stroke="#64748b"
-            fontSize={12}
-            tickLine={false}
-            axisLine={{ stroke: '#e2e8f0' }}
-            tickFormatter={(val) => `${val}`}
-          />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-              fontSize: '12px',
-            }}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            formatter={(value: any, name: any) => {
-              const labels: Record<string, string> = {
-                hadir: 'Hadir Tepat Waktu',
-                terlambat: 'Terlambat',
-                cuti_izin: 'Cuti / Sakit / Izin',
-                tanpa_keterangan: 'Tanpa Keterangan (Alpa)',
-              };
-              return [`${value} orang/hari`, labels[name] || name];
-            }}
-            labelFormatter={(label, payload) => {
-              if (payload && payload[0]?.payload?.rentang) {
-                return `${label} (${payload[0].payload.rentang})`;
+    <div className="w-full space-y-3">
+      {showLegend && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-medium text-muted-foreground">
+          {LEGEND_ITEMS.map((item) => (
+            <span key={item.key} className="inline-flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: item.color }}
+              />
+              <span>{item.label}</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="w-full" style={{ height }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 10, right: 16, left: -8, bottom: 4 }} barCategoryGap="28%">
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
+            <XAxis
+              dataKey="minggu"
+              stroke={AXIS_COLOR}
+              fontSize={11}
+              tickLine={false}
+              axisLine={{ stroke: GRID_COLOR }}
+              tickMargin={8}
+            />
+            <YAxis
+              stroke={AXIS_COLOR}
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              tickMargin={4}
+            />
+            <Tooltip
+              cursor={{ fill: 'rgba(255,255,255,0.42)', radius: 12 }}
+              contentStyle={{
+                backgroundColor: 'var(--popover)',
+                color: 'var(--popover-foreground)',
+                borderRadius: '16px',
+                border: '1px solid var(--border)',
+                boxShadow: '0 12px 24px -10px rgba(0,0,0,0.18)',
+                fontSize: '12px',
+                fontWeight: 600,
+                padding: '8px 12px',
+              }}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter={(value: any, name: any) => [
+                `${value} orang/hari`,
+                LABELS[name] || name,
+              ]}
+              labelFormatter={(label, payload) =>
+                payload?.[0]?.payload?.rentang ? `${label} (${payload[0].payload.rentang})` : label
               }
-              return label;
-            }}
-          />
-          <Legend
-            verticalAlign="top"
-            height={36}
-            iconType="circle"
-            formatter={(val) => {
-              const labels: Record<string, string> = {
-                hadir: 'Hadir Tepat Waktu',
-                terlambat: 'Terlambat',
-                cuti_izin: 'Cuti / Izin',
-                tanpa_keterangan: 'Tanpa Keterangan',
-              };
-              return <span className="text-xs text-slate-600 font-medium">{labels[val] || val}</span>;
-            }}
-          />
-          <Bar dataKey="hadir" stackId="attendance" fill="#10b981" radius={[0, 0, 0, 0]} />
-          <Bar dataKey="terlambat" stackId="attendance" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-          <Bar dataKey="cuti_izin" stackId="attendance" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-          <Bar dataKey="tanpa_keterangan" stackId="attendance" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+            />
+            <Bar dataKey="hadir" stackId="attendance" fill={CHART_COLORS.hadir} maxBarSize={54} isAnimationActive={false} />
+            <Bar dataKey="terlambat" stackId="attendance" fill={CHART_COLORS.terlambat} maxBarSize={54} isAnimationActive={false} />
+            <Bar dataKey="cuti_izin" stackId="attendance" fill={CHART_COLORS.cuti_izin} maxBarSize={54} isAnimationActive={false} />
+            <Bar
+              dataKey="tanpa_keterangan"
+              stackId="attendance"
+              fill={CHART_COLORS.tanpa_keterangan}
+              radius={[6, 6, 0, 0]}
+              maxBarSize={54}
+              isAnimationActive={false}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

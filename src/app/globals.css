@@ -65,78 +65,53 @@
 }
 
 :root {
-  --background: #f7f2fb;
-  --foreground: #1b2437;
-  --card: #fffaf2;
-  --card-foreground: #1b2437;
-  --popover: #fffaf2;
-  --popover-foreground: #1b2437;
-  --primary: #0a6650;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #0f7a5f;
   --primary-foreground: #ffffff;
-  --secondary: #f1e9ff;
-  --secondary-foreground: #2f2545;
-  --muted: #f0eafa;
-  --muted-foreground: #4b5268;
-  --accent: #f1e9ff;
-  --accent-foreground: #2f2545;
-  --destructive: #b4233c;
-  --info: #1d5f8f;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --info: #0284c7;
   --info-foreground: #ffffff;
-  --border: #e6ddf3;
-  --input: #e1d6f0;
-  --ring: #0a6650;
-  --chart-1: #178f6c;
-  --chart-2: #d99a0b;
-  --chart-3: #c2760f;
-  --chart-4: #6d5bd0;
-  --chart-5: #6b4a00;
-  --radius: 1rem;
-  --sidebar: #efe8ff;
-  --sidebar-foreground: #2b2440;
-  --sidebar-primary: #0a6650;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #0f7a5f;
+  --chart-1: #0f7a5f;
+  --chart-2: #f59e0b;
+  --chart-3: #6366f1;
+  --chart-4: #ec4899;
+  --chart-5: #8b5cf6;
+  --radius: 0.75rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #0f7a5f;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e1d6f8;
-  --sidebar-accent-foreground: #241d38;
-  --sidebar-border: rgba(91, 70, 140, 0.12);
-  --sidebar-ring: #0a6650;
-  --canvas-glow-primary: rgba(198, 245, 226, 0.7);
-  --canvas-glow-warm: rgba(255, 205, 226, 0.6);
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #0f7a5f;
+  --canvas-glow-primary: rgba(15, 122, 95, 0.04);
+  --canvas-glow-warm: rgba(245, 158, 11, 0.02);
 
-  /* Resep clay yang dipakai lintas komponen. */
-  --clay-ink: #1b2437;
-  --clay-shadow:
-    0 24px 40px -22px rgba(54, 38, 92, 0.34),
-    0 10px 20px -14px rgba(54, 38, 92, 0.2),
-    inset 0 9px 17px rgba(255, 255, 255, 0.68),
-    inset 0 -9px 17px rgba(54, 38, 92, 0.12);
-  --clay-shadow-sm:
-    0 16px 26px -18px rgba(54, 38, 92, 0.3),
-    0 6px 12px -10px rgba(54, 38, 92, 0.16),
-    inset 0 5px 10px rgba(255, 255, 255, 0.58),
-    inset 0 -5px 10px rgba(54, 38, 92, 0.09);
-  --clay-shadow-hover:
-    0 30px 48px -24px rgba(54, 38, 92, 0.38),
-    0 14px 24px -15px rgba(54, 38, 92, 0.24),
-    inset 0 9px 17px rgba(255, 255, 255, 0.62),
-    inset 0 -13px 22px rgba(54, 38, 92, 0.17);
-  --clay-button:
-    0 10px 18px -12px rgba(54, 38, 92, 0.35),
-    inset 0 4px 7px rgba(255, 255, 255, 0.55),
-    inset 0 -5px 9px rgba(54, 38, 92, 0.16);
-  --clay-button-hover:
-    0 16px 26px -14px rgba(54, 38, 92, 0.42),
-    inset 0 5px 9px rgba(255, 255, 255, 0.5),
-    inset 0 -9px 14px rgba(54, 38, 92, 0.22);
-  --clay-button-pressed:
-    0 4px 10px -8px rgba(54, 38, 92, 0.3),
-    inset 0 8px 14px rgba(54, 38, 92, 0.22),
-    inset 0 -3px 6px rgba(255, 255, 255, 0.35);
-  --clay-inset:
-    inset 0 5px 10px rgba(54, 38, 92, 0.08),
-    inset 0 -4px 8px rgba(255, 255, 255, 0.72);
-  --clay-field-inset:
-    inset 0 3px 7px rgba(54, 38, 92, 0.1),
-    inset 0 -3px 6px rgba(255, 255, 255, 0.9);
+  /* Modern elevation tokens */
+  --clay-ink: #0f172a;
+  --clay-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  --clay-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --clay-shadow-hover: 0 4px 12px 0 rgb(0 0 0 / 0.08);
+  --clay-button: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --clay-button-hover: 0 2px 4px 0 rgb(0 0 0 / 0.08);
+  --clay-button-pressed: inset 0 1px 2px 0 rgb(0 0 0 / 0.1);
+  --clay-inset: inset 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --clay-field-inset: 0 1px 2px 0 rgb(0 0 0 / 0.04);
 }
 
 .dark {
@@ -211,278 +186,91 @@
 }
 
 /* =========================================================================
-   CLAYMORPHISM SURFACE
-   Aturan di bawah sengaja tidak dimasukkan ke @layer agar dapat
-   menyelaraskan utility Tailwind yang sudah tersebar di seluruh halaman.
+   MODERN APPLICATION SURFACE (Shadcn + Gradient Able Presets)
    ========================================================================= */
 
 .clay-app {
   min-height: 100vh;
   color: var(--foreground);
-  font-weight: 500;
-  background-color: #f6f1fb;
-  background-image:
-    radial-gradient(58rem 42rem at 4% -12%, rgba(255, 205, 226, 0.62), transparent 60%),
-    radial-gradient(52rem 38rem at 102% -6%, rgba(198, 232, 255, 0.68), transparent 58%),
-    radial-gradient(56rem 44rem at 52% 112%, rgba(198, 245, 226, 0.72), transparent 60%),
-    linear-gradient(140deg, #fbf5ff 0%, #f5f6ff 42%, #fff9f0 100%);
-  background-attachment: fixed;
+  background-color: var(--background);
 }
 
-/* Tipografi chunky: Nunito Sans tebal untuk judul, angka, dan label besar. */
-.clay-app h1,
-.clay-app h2,
-.clay-app h3,
-.clay-app h4,
-.clay-app .font-heading {
-  font-family: var(--font-sans);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.clay-app h1 {
-  line-height: 1.08;
-}
-
-/* Kartu clay dengan warna sendiri; warna latar diberikan oleh aksen komponen. */
 .clay-card {
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 1.75rem;
-  box-shadow: var(--clay-shadow);
-  transition:
-    box-shadow 220ms ease,
-    transform 220ms ease;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--card);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
 }
 
 .clay-lift:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--clay-shadow-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px 0 rgb(0 0 0 / 0.08);
 }
 
 .clay-inset {
-  border-radius: 1.25rem;
-  background-color: rgba(255, 255, 255, 0.42);
-  box-shadow: var(--clay-inset);
+  border-radius: 0.75rem;
+  background-color: var(--muted);
+  border: 1px solid var(--border);
 }
 
 .clay-tile {
-  box-shadow:
-    0 7px 12px -8px rgba(54, 38, 92, 0.3),
-    inset 0 4px 7px rgba(255, 255, 255, 0.66),
-    inset 0 -5px 9px rgba(54, 38, 92, 0.14);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .clay-pill {
-  box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.55),
-    inset 0 -2px 4px rgba(54, 38, 92, 0.08);
+  border-radius: 9999px;
 }
 
 .clay-chip {
-  box-shadow:
-    inset 0 2px 4px rgba(255, 255, 255, 0.62),
-    inset 0 -3px 6px rgba(54, 38, 92, 0.09),
-    0 5px 10px -8px rgba(54, 38, 92, 0.25);
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background-color: var(--muted);
 }
 
-/* Panel navigasi dan topbar yang mengapung di atas kanvas pastel. */
 .clay-sidebar {
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  background: linear-gradient(180deg, #f3edff 0%, #ece4ff 58%, #e8f7ef 100%);
-  box-shadow: var(--clay-shadow);
+  border-right: 1px solid var(--border);
+  background-color: var(--sidebar);
 }
 
 .clay-topbar {
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 1.75rem;
-  background: rgba(255, 249, 240, 0.88);
-  box-shadow: var(--clay-shadow);
-  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--card);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+  backdrop-filter: blur(12px);
 }
 
 .clay-popover {
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 1.5rem;
-  background-color: #fffaf2;
-  box-shadow:
-    0 28px 48px -24px rgba(54, 38, 92, 0.38),
-    0 12px 24px -16px rgba(54, 38, 92, 0.2),
-    inset 0 6px 12px rgba(255, 255, 255, 0.6),
-    inset 0 -6px 12px rgba(54, 38, 92, 0.08);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--popover);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 }
 
-/* Dialog mengikuti bahasa visual kartu clay. */
-.clay-app [role="dialog"] {
-  border-radius: 1.75rem !important;
-  box-shadow: var(--clay-shadow) !important;
-}
-
-/* Kartu generik yang masih memakai utility bg-card di halaman. */
-.clay-app :is(div, section, article, aside, form, header, footer)[class~="bg-card"]:not(.clay-card) {
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 1.5rem;
-  box-shadow: var(--clay-shadow-sm);
-}
-
-/* Panel inset (filter, item daftar, area ringkasan) tetap terasa lembut. */
-.clay-app :is(div, section, article, li)[class~="bg-muted/10"],
-.clay-app :is(div, section, article, li)[class~="bg-muted/20"],
-.clay-app :is(div, section, article, li)[class~="bg-muted/30"],
-.clay-app :is(div, section, article, li)[class~="bg-muted/40"],
-.clay-app :is(div, section, article, li)[class~="bg-muted/50"] {
-  border-radius: 1.25rem;
-  box-shadow:
-    inset 0 4px 9px rgba(54, 38, 92, 0.06),
-    inset 0 -4px 8px rgba(255, 255, 255, 0.55);
-}
-
-/* Tombol clay: dua inner shadow + drop shadow, hover memperdalam inner. */
-.clay-app button:not(.fixed),
-.clay-app [data-slot="button"],
-.clay-app a[class~="inline-flex"][class~="h-8"],
-.clay-app a[class~="inline-flex"][class~="h-9"],
-.clay-app a[class~="inline-flex"][class~="h-10"],
-.clay-app a[class~="inline-flex"][class~="h-11"],
-.clay-app a[class~="inline-flex"][class~="h-12"] {
-  border-radius: 1rem;
-  box-shadow: var(--clay-button);
-  transition:
-    box-shadow 180ms ease,
-    transform 180ms ease,
-    background-color 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease;
-}
-
-.clay-app button:not(.fixed):not(:disabled):hover,
-.clay-app [data-slot="button"]:not(:disabled):hover,
-.clay-app a[class~="inline-flex"][class~="h-8"]:hover,
-.clay-app a[class~="inline-flex"][class~="h-9"]:hover,
-.clay-app a[class~="inline-flex"][class~="h-10"]:hover,
-.clay-app a[class~="inline-flex"][class~="h-11"]:hover,
-.clay-app a[class~="inline-flex"][class~="h-12"]:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--clay-button-hover);
-}
-
-.clay-app button:not(.fixed):not(:disabled):active,
-.clay-app [data-slot="button"]:not(:disabled):active,
-.clay-app a[class~="inline-flex"][class~="h-8"]:active,
-.clay-app a[class~="inline-flex"][class~="h-9"]:active,
-.clay-app a[class~="inline-flex"][class~="h-10"]:active,
-.clay-app a[class~="inline-flex"][class~="h-11"]:active,
-.clay-app a[class~="inline-flex"][class~="h-12"]:active {
-  transform: translateY(2px) scale(0.99);
-  box-shadow: var(--clay-button-pressed);
-}
-
-.clay-app button,
-.clay-app [data-slot="button"],
-.clay-app a[class~="inline-flex"][class~="h-8"],
-.clay-app a[class~="inline-flex"][class~="h-9"],
-.clay-app a[class~="inline-flex"][class~="h-10"],
-.clay-app a[class~="inline-flex"][class~="h-11"],
-.clay-app a[class~="inline-flex"][class~="h-12"] {
-  font-weight: 700;
-}
-
-/* Kontrol form clay: cekung, radius besar, dan fokus yang jelas. */
-.clay-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]),
-.clay-app select,
-.clay-app textarea {
-  min-height: 2.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 1.05rem;
-  background-color: #fffaf2;
-  color: var(--foreground);
-  box-shadow: var(--clay-field-inset);
-  transition:
-    box-shadow 180ms ease,
-    border-color 180ms ease,
-    background-color 180ms ease;
-}
-
-.clay-app textarea {
-  min-height: 6rem;
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-}
-
-.clay-app input:hover:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]),
-.clay-app select:hover,
-.clay-app textarea:hover {
-  border-color: rgba(15, 122, 95, 0.28);
-}
-
-.clay-app input::placeholder,
-.clay-app textarea::placeholder {
-  color: #5b6478;
-  opacity: 1;
-}
-
-.clay-app select option {
-  background-color: #fffaf2;
-  color: var(--foreground);
-}
-
-.clay-app input[type="checkbox"],
-.clay-app input[type="radio"] {
-  accent-color: var(--primary);
-}
-
-/* Navigasi sidebar clay. */
 .clay-nav-link {
-  border-radius: 1rem;
-  transition:
-    background-color 160ms ease,
-    box-shadow 160ms ease,
-    color 160ms ease,
-    transform 160ms ease;
+  border-radius: 0.75rem;
+  transition: all 150ms ease;
 }
 
 .clay-nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.52);
-  box-shadow:
-    inset 0 3px 7px rgba(255, 255, 255, 0.62),
-    inset 0 -3px 7px rgba(54, 38, 92, 0.07);
-}
-
-.clay-nav-link:active {
-  transform: translateY(1px);
-  box-shadow:
-    inset 0 5px 9px rgba(54, 38, 92, 0.11),
-    inset 0 -3px 7px rgba(255, 255, 255, 0.5);
+  background-color: var(--muted);
+  color: var(--foreground);
 }
 
 .clay-nav-link[aria-current="page"] {
-  background-color: #d8f5e7;
-  color: #0b5b45;
-  box-shadow:
-    0 8px 14px -10px rgba(54, 38, 92, 0.28),
-    inset 0 5px 9px rgba(255, 255, 255, 0.66),
-    inset 0 -6px 11px rgba(54, 38, 92, 0.12);
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  font-weight: 600;
 }
 
-.clay-app [data-slot="badge"] {
-  border-radius: 999px;
-  box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.55),
-    inset 0 -2px 4px rgba(54, 38, 92, 0.08);
-}
-
-/* Radius pil dipertahankan meskipun kontrol memakai radius clay. */
-.clay-app [class~="rounded-full"] {
-  border-radius: 999px;
-}
-
-/* Tabel tetap rapi di atas permukaan pastel. */
-.clay-app table {
+/* Tabel tetap rapi dengan angka tabular */
+table {
   font-variant-numeric: tabular-nums;
 }
 
-.clay-app thead th {
-  color: #555d72;
-  font-weight: 700;
+thead th {
+  color: var(--muted-foreground);
+  font-weight: 600;
 }
 
 /* Legenda Recharts bisa membungkus rapi di layar sempit. */
@@ -503,10 +291,9 @@
   font-weight: 600 !important;
 }
 
-/* Fokus keyboard global: cincin tebal dan selalu terlihat. */
-.clay-app :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible,
-.clay-popover :where(button, a, [tabindex]):focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--ring) 58%, transparent);
+/* Fokus keyboard global */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -549,10 +336,13 @@
 .dash-card {
   border: 1px solid var(--dash-border);
   border-radius: 1.5rem;
-  background: var(--dash-surface);
   box-shadow:
     0 18px 40px -30px rgba(31, 76, 133, 0.35),
     0 4px 12px -8px rgba(31, 76, 133, 0.1);
+}
+
+.dash-card:not([class*='bg-']):not([class*='dash-card-']):not([class*='dash-leave-']):not([class*='dash-hero']):not([class*='dash-perf-']):not([class*='dash-soft-']) {
+  background: var(--dash-surface);
 }
 
 .dash-hero {
@@ -756,10 +546,140 @@
   line-height: 1.3;
 }
 
-.dash-leave-card {
+.dash-leave-card,
+.dash-emerald-card {
   background:
-    radial-gradient(circle at 100% 0%, rgba(46, 216, 182, 0.18), transparent 34%),
+    radial-gradient(circle at 100% 0%, rgba(46, 216, 182, 0.22), transparent 34%),
     linear-gradient(135deg, #083f32 0%, #0b5c48 52%, #0e6f56 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 36px -12px rgba(8, 63, 50, 0.4), 0 2px 8px -2px rgba(8, 63, 50, 0.2);
+  color: #ffffff;
+}
+
+.dash-amber-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 182, 77, 0.25), transparent 36%),
+    linear-gradient(135deg, #3d2105 0%, #583007 52%, #75410a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 36px -12px rgba(61, 33, 5, 0.4), 0 2px 8px -2px rgba(61, 33, 5, 0.2);
+  color: #ffffff;
+}
+
+.dash-perf-card,
+.dash-blue-card {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(115, 180, 255, 0.3), transparent 36%),
+    linear-gradient(135deg, #0e2954 0%, #153e70 52%, #1c5596 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 36px -12px rgba(14, 41, 84, 0.4), 0 2px 8px -2px rgba(14, 41, 84, 0.2);
+  color: #ffffff;
+}
+
+.dash-rose-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 139, 160, 0.25), transparent 36%),
+    linear-gradient(135deg, #3d0e19 0%, #5c1626 52%, #7d1f34 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 36px -12px rgba(61, 14, 25, 0.4), 0 2px 8px -2px rgba(61, 14, 25, 0.2);
+  color: #ffffff;
+}
+
+.dash-indigo-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(169, 159, 240, 0.25), transparent 36%),
+    linear-gradient(135deg, #1b1035 0%, #28174f 50%, #371f6d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 36px -12px rgba(27, 16, 53, 0.4), 0 2px 8px -2px rgba(27, 16, 53, 0.2);
+  color: #ffffff;
+}
+
+/* =========================================================================
+   SOFT TINTED CARDS (Subtle, Airy, Non-Fatiguing for Big Reports & Charts)
+   ========================================================================= */
+
+.dash-soft-blue-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.12), transparent 42%),
+    linear-gradient(135deg, rgba(239, 246, 255, 0.85) 0%, rgba(240, 249, 255, 0.65) 50%, #ffffff 100%);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  box-shadow: 0 8px 24px -8px rgba(59, 130, 246, 0.12), 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  color: var(--foreground);
+}
+
+.dark .dash-soft-blue-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.15), transparent 42%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(14, 34, 61, 0.45) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
+}
+
+.dash-soft-emerald-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(16, 185, 129, 0.12), transparent 42%),
+    linear-gradient(135deg, rgba(236, 253, 245, 0.85) 0%, rgba(240, 253, 250, 0.65) 50%, #ffffff 100%);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  box-shadow: 0 8px 24px -8px rgba(16, 185, 129, 0.12), 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  color: var(--foreground);
+}
+
+.dark .dash-soft-emerald-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(16, 185, 129, 0.15), transparent 42%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(6, 44, 34, 0.45) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
+}
+
+.dash-soft-amber-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.12), transparent 42%),
+    linear-gradient(135deg, rgba(254, 243, 199, 0.75) 0%, rgba(255, 251, 235, 0.6) 50%, #ffffff 100%);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  box-shadow: 0 8px 24px -8px rgba(245, 158, 11, 0.12), 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  color: var(--foreground);
+}
+
+.dark .dash-soft-amber-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.15), transparent 42%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(55, 33, 9, 0.45) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
+}
+
+.dash-soft-indigo-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.12), transparent 42%),
+    linear-gradient(135deg, rgba(238, 242, 255, 0.85) 0%, rgba(245, 243, 255, 0.65) 50%, #ffffff 100%);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  box-shadow: 0 8px 24px -8px rgba(99, 102, 241, 0.12), 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  color: var(--foreground);
+}
+
+.dark .dash-soft-indigo-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.15), transparent 42%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 20, 60, 0.45) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
+}
+
+.dash-soft-rose-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(244, 63, 94, 0.12), transparent 42%),
+    linear-gradient(135deg, rgba(255, 241, 242, 0.85) 0%, rgba(255, 245, 245, 0.65) 50%, #ffffff 100%);
+  border: 1px solid rgba(244, 63, 94, 0.22);
+  box-shadow: 0 8px 24px -8px rgba(244, 63, 94, 0.12), 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  color: var(--foreground);
+}
+
+.dark .dash-soft-rose-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(244, 63, 94, 0.15), transparent 42%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(60, 15, 25, 0.45) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
 }
 
 .live-dot {

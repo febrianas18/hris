@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+scratch/
+reference-template/
 
 # debug
 npm-debug.log*

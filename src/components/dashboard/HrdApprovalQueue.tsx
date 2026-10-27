@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 interface HrdApprovalQueueProps {
   initialItems: HrdQueueItem[];
   initialPendingCount: number;
+  className?: string;
 }
 
 type Feedback = { type: 'success' | 'error'; message: string };
@@ -27,15 +28,15 @@ type Feedback = { type: 'success' | 'error'; message: string };
 const JENIS_META: Record<string, { label: string; className: string }> = {
   cuti_tahunan: {
     label: 'Cuti tahunan',
-    className: 'bg-[#eaf4ff] text-[#1559a8] ring-[#cfe3fb]',
+    className: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 ring-blue-500/25',
   },
   sakit: {
     label: 'Sakit',
-    className: 'bg-[#fff0f2] text-[#b4233c] ring-[#f6cbd2]',
+    className: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 ring-rose-500/25',
   },
   izin: {
     label: 'Izin',
-    className: 'bg-[#fff6e8] text-[#a86300] ring-[#f8dfb3]',
+    className: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-amber-500/25',
   },
 };
 
@@ -65,6 +66,7 @@ function formatShortDate(dateString: string) {
 export default function HrdApprovalQueue({
   initialItems,
   initialPendingCount,
+  className,
 }: HrdApprovalQueueProps) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
@@ -167,16 +169,10 @@ export default function HrdApprovalQueue({
 
   return (
     <BentoCard
-      title="Antrean keputusan"
-      description={
-        pendingCount > 0
-          ? `${pendingCount} pengajuan menunggu keputusan akhir HRD`
-          : 'Tidak ada pengajuan yang menunggu'
-      }
-      eyebrow="Persetujuan"
+      title="Antrean Keputusan Persetujuan"
       icon={Inbox}
       accent="amber"
-      className="h-full xl:col-span-5"
+      className={cn('w-full', className)}
       bodyClassName="flex flex-col px-0 pb-0 pt-0"
       action={
         <span
@@ -208,20 +204,20 @@ export default function HrdApprovalQueue({
 
       {items.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center px-5 py-8 text-center">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-[#e7f8f1] text-[#0b6b53]">
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-inset ring-amber-500/25">
             <CheckCircle2 aria-hidden="true" className="size-5" strokeWidth={1.8} />
           </span>
-          <p className="mt-3 text-sm font-bold text-[#162033]">Antrean bersih</p>
-          <p className="mt-1 max-w-[28ch] text-xs leading-5 text-[#64748b]">
+          <p className="mt-3 text-sm font-bold text-foreground">Antrean bersih</p>
+          <p className="mt-1 max-w-[28ch] text-xs leading-5 text-muted-foreground">
             Semua pengajuan cuti dan izin sudah diputuskan.
           </p>
         </div>
       ) : (
-        <ul className="mt-1 flex-1 divide-y divide-[#edf3fa]">
+        <ul className="mt-1 flex-1 divide-y divide-amber-200/50 dark:divide-amber-900/30">
           {items.map((item) => {
             const meta = JENIS_META[item.jenis] || {
               label: item.jenis,
-              className: 'bg-[#f1f5f9] text-[#475569] ring-[#e2e8f0]',
+              className: 'bg-muted text-foreground ring-border',
             };
             const isProcessing = processingId === item.id;
             const isRejecting = rejectingId === item.id;
@@ -231,7 +227,7 @@ export default function HrdApprovalQueue({
                 <div className="flex items-start gap-3">
                   <span
                     aria-hidden="true"
-                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#eaf4ff,#d7eaff)] text-[11px] font-extrabold text-[#1559a8] ring-1 ring-inset ring-[#cfe3fb]"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-[11px] font-extrabold text-amber-800 dark:text-amber-200 ring-1 ring-inset ring-amber-500/25"
                   >
                     {getInitials(item.karyawan_nama)}
                   </span>
@@ -239,11 +235,11 @@ export default function HrdApprovalQueue({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-extrabold leading-5 text-[#162033]">
+                        <p className="truncate text-[13px] font-extrabold leading-5 text-foreground">
                           {item.karyawan_nama}
                         </p>
-                        <p className="truncate text-[11px] leading-4 text-[#64748b]">
-                          {item.divisi_nama} · <span className="font-mono">{item.karyawan_nik}</span>
+                        <p className="truncate text-[11px] leading-4 text-muted-foreground">
+                          {item.divisi_nama} · <span className="font-mono text-foreground/80">{item.karyawan_nik}</span>
                         </p>
                       </div>
                       <span
@@ -256,14 +252,14 @@ export default function HrdApprovalQueue({
                       </span>
                     </div>
 
-                    <p className="mt-1.5 text-[11px] font-medium text-[#475569] tabular-nums">
+                    <p className="mt-1.5 text-[11px] font-medium text-foreground/80 tabular-nums">
                       {formatShortDate(item.tanggal_mulai)} – {formatShortDate(item.tanggal_selesai)}
-                      <span className="mx-1.5 text-[#cbd5e1]">·</span>
+                      <span className="mx-1.5 opacity-60">·</span>
                       {item.jumlah_hari} hari
                     </p>
 
                     {item.alasan ? (
-                      <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-[#64748b]">
+                      <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted-foreground">
                         “{item.alasan}”
                       </p>
                     ) : null}
@@ -296,7 +292,7 @@ export default function HrdApprovalQueue({
                         Tolak
                       </button>
                       {isProcessing ? (
-                        <span className="text-[10px] font-semibold text-[#64748b]">
+                        <span className="text-[10px] font-semibold text-muted-foreground">
                           Memproses...
                         </span>
                       ) : null}
@@ -307,11 +303,11 @@ export default function HrdApprovalQueue({
                         id={`reject-form-${item.id}`}
                         onSubmit={handleReject}
                         noValidate
-                        className="mt-3 rounded-xl bg-[#fff8f9] p-3 ring-1 ring-inset ring-[#f6cbd2]"
+                        className="mt-3 rounded-xl bg-background/90 p-3 ring-1 ring-inset ring-amber-200/80 dark:ring-amber-900/50 shadow-xs"
                       >
                         <label
                           htmlFor={`reject-reason-${item.id}`}
-                          className="text-[11px] font-bold text-[#8f1d32]"
+                          className="text-[11px] font-bold text-foreground"
                         >
                           Alasan penolakan
                         </label>
@@ -327,7 +323,7 @@ export default function HrdApprovalQueue({
                           minLength={10}
                           required
                           placeholder="Tuliskan alasan yang jelas, minimal 10 karakter..."
-                          className="dash-reject-textarea mt-1.5"
+                          className="dash-reject-textarea mt-1.5 bg-background text-foreground placeholder:text-muted-foreground border-border"
                           aria-describedby={`reject-hint-${item.id}`}
                         />
                         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -335,7 +331,7 @@ export default function HrdApprovalQueue({
                             id={`reject-hint-${item.id}`}
                             className={cn(
                               'text-[10px] font-semibold tabular-nums',
-                              reason.trim().length >= 10 ? 'text-[#0b6b53]' : 'text-[#8f1d32]'
+                              reason.trim().length >= 10 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                             )}
                           >
                             {reason.trim().length}/10 karakter
@@ -365,7 +361,7 @@ export default function HrdApprovalQueue({
                           </div>
                         </div>
                         {formError ? (
-                          <p role="alert" className="mt-2 text-[10px] font-semibold leading-4 text-[#b4233c]">
+                          <p role="alert" className="mt-2 text-[10px] font-semibold leading-4 text-rose-600 dark:text-rose-400">
                             {formError}
                           </p>
                         ) : null}
@@ -379,10 +375,10 @@ export default function HrdApprovalQueue({
         </ul>
       )}
 
-      <div className="mt-auto border-t border-[#edf3fa] px-4 py-3 sm:px-5">
+      <div className="mt-auto border-t border-amber-200/50 dark:border-amber-900/30 px-4 py-3 sm:px-5">
         <Link
           href="/persetujuan"
-          className="dash-inline-link inline-flex items-center gap-1.5 text-[11px] font-bold"
+          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:text-amber-950 dark:hover:text-amber-200"
         >
           Buka semua persetujuan
           <ArrowUpRight aria-hidden="true" className="size-3.5" />

@@ -13,8 +13,51 @@ import {
   Loader2,
   ShieldAlert,
   Info,
-  CheckCircle2,
+  ArrowRight,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+
+const QUICK_ACCOUNTS = [
+  {
+    email: 'rina.kusumawardani@karsalintas.test',
+    name: 'Rina Kusumawardani',
+    role: 'HRD',
+    roleBadge: 'default' as const,
+    disabled: false,
+    badgeColor: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
+  },
+  {
+    email: 'maya.anggraini@karsalintas.test',
+    name: 'Maya Anggraini',
+    role: 'Atasan',
+    roleBadge: 'secondary' as const,
+    disabled: false,
+    badgeColor: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/20',
+  },
+  {
+    email: 'andi.wijaya@karsalintas.test',
+    name: 'Andi Wijaya',
+    role: 'Karyawan',
+    roleBadge: 'outline' as const,
+    disabled: false,
+    badgeColor: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/20',
+  },
+  {
+    email: 'bambang.hartono@karsalintas.test',
+    name: 'Bambang Hartono',
+    role: 'Nonaktif',
+    roleBadge: 'destructive' as const,
+    disabled: true,
+    badgeColor: 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/20',
+  },
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,12 +68,15 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('error') === 'inactive') {
-        setErrorMessage('Akun Anda dinonaktifkan. Silakan hubungi HRD.');
-      }
-    }
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error') !== 'inactive') return;
+
+    // Tampilkan pesan setelah cat pertama agar tidak memicu render berantai saat mount.
+    const timer = window.setTimeout(() => {
+      setErrorMessage('Akun Anda dinonaktifkan. Silakan hubungi HRD.');
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -99,185 +145,218 @@ export default function LoginPage() {
     setErrorMessage(null);
   };
 
+  const isInactiveError = errorMessage?.toLowerCase().includes('dinonaktifkan');
+
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-4 sm:p-6 lg:p-8">
-      {/* Decorative ambient glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="relative flex min-h-screen w-full flex-col justify-between items-center bg-slate-50 dark:bg-slate-950 overflow-hidden py-10 px-4 sm:px-6">
+      {/* Ambient gradient glow circles matching Gradient Able template */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-40 -right-40 size-[500px] rounded-full bg-primary/10 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-40 -left-40 size-[500px] rounded-full bg-sky-500/10 blur-3xl"
+      />
 
-      <div className="w-full max-w-md relative z-10">
+      {/* Main Auth Container */}
+      <div className="relative z-10 w-full max-w-[450px] my-auto">
         {/* Brand Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white shadow-xl shadow-indigo-500/25 mb-4 border border-indigo-400/30">
-            <Building2 className="w-8 h-8" />
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-3 flex size-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25">
+            <Building2 aria-hidden="true" className="size-7" strokeWidth={2} />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Karsa<span className="text-indigo-400">HR</span>
-          </h1>
-          <p className="text-sm font-medium text-slate-400 mt-1">
+          <h2 className="text-sm font-bold tracking-widest text-primary uppercase">
             PT Karsa Lintas Nusantara
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Sistem Informasi SDM & Kepegawaian Terpadu
           </p>
-          <div className="inline-block mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700">
-            Sistem Informasi HR Internal
-          </div>
         </div>
 
-        {/* Card Form */}
-        <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/40">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-white">Masuk ke Akun</h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Masukkan email dan kata sandi yang telah didaftarkan oleh HRD.
-            </p>
-          </div>
+        {/* Login Card */}
+        <Card className="border border-border/80 shadow-xl bg-card">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
+              Masuk ke Akun
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Masukkan email perusahaan dan kata sandi yang telah didaftarkan
+            </CardDescription>
+          </CardHeader>
 
-          {/* Alert Error (Termasuk pesan akun nonaktif BR-01) */}
-          {errorMessage && (
-            <div
-              id="login-error-alert"
-              className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-3 animate-in fade-in duration-200"
-              role="alert"
-            >
-              {errorMessage.includes('dinonaktifkan') ? (
-                <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-              ) : (
-                <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-              )}
-              <div className="flex-1 text-sm font-medium text-rose-200">
-                {errorMessage}
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Input Email */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5"
+          <CardContent className="space-y-4 pt-2">
+            {/* Banner Alert BR-01: Akun Dinonaktifkan */}
+            {errorMessage && isInactiveError && (
+              <Alert
+                id="login-error-alert"
+                variant="destructive"
+                className="border-rose-300/80 bg-rose-50 text-rose-950 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-100"
               >
-                Email Perusahaan
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                  <Mail className="w-4 h-4" />
+                <ShieldAlert className="size-4 text-rose-600 dark:text-rose-400" />
+                <div className="space-y-1">
+                  <AlertTitle className="text-xs font-bold text-rose-800 dark:text-rose-300">
+                    Akses Akun Dinonaktifkan (BR-01)
+                  </AlertTitle>
+                  <AlertDescription className="text-xs text-rose-700 dark:text-rose-300 leading-relaxed">
+                    {errorMessage} Akses masuk dibatasi untuk akun nonaktif. Silakan hubungi bagian HRD untuk informasi aktivasi kembali.
+                  </AlertDescription>
                 </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  placeholder="nama.karyawan@karsalintas.test"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-800/70 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-60"
-                />
+              </Alert>
+            )}
+
+            {/* Standard Error Alert */}
+            {errorMessage && !isInactiveError && (
+              <Alert id="login-error-alert" variant="destructive">
+                <AlertCircle className="size-4" />
+                <AlertDescription className="text-xs font-medium">
+                  {errorMessage}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Form Input */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs font-semibold text-foreground">
+                  Email Perusahaan
+                </Label>
+                <div className="relative">
+                  <Mail
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    placeholder="nama.karyawan@karsalintas.test"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    className="h-10 pl-9.5 text-sm"
+                  />
+                </div>
               </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-xs font-semibold text-foreground">
+                    Kata Sandi
+                  </Label>
+                </div>
+                <div className="relative">
+                  <Lock
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="h-10 pl-9.5 pr-10 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-1.5 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                  >
+                    {showPassword ? (
+                      <EyeOff aria-hidden="true" className="size-4" />
+                    ) : (
+                      <Eye aria-hidden="true" className="size-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                id="btn-login"
+                type="submit"
+                disabled={isLoading}
+                className="mt-2 h-10 w-full font-semibold shadow-sm cursor-pointer transition-all hover:shadow"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 aria-hidden="true" className="size-4 animate-spin mr-2" />
+                    <span>Memverifikasi akun...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Masuk ke Sistem</span>
+                    <ArrowRight aria-hidden="true" className="size-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/30 p-2.5 text-muted-foreground">
+              <Info aria-hidden="true" className="size-4 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-relaxed">
+                Pendaftaran akun baru dilakukan terpusat oleh HRD sesuai hak akses peran (BR-01).
+              </p>
+            </div>
+          </CardContent>
+
+          {/* Quick Account Preset Section */}
+          <CardFooter className="flex flex-col border-t border-border/70 pt-4 pb-4 bg-muted/15">
+            <div className="w-full flex items-center justify-between mb-2.5">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Sparkles className="size-3.5 text-primary" />
+                Akun Uji Cepat (Demo Presets)
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono bg-background px-1.5 py-0.5 rounded border border-border/70">
+                Sandi: Latihan#2026
+              </span>
             </div>
 
-            {/* Input Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5"
-              >
-                Kata Sandi
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full pl-10 pr-11 py-2.5 bg-slate-800/70 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all disabled:opacity-60"
-                />
+            <div className="grid grid-cols-2 gap-2 w-full">
+              {QUICK_ACCOUNTS.map((account) => (
                 <button
+                  key={account.email}
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
-                  aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                  onClick={() => setQuickAccount(account.email)}
+                  className={`group flex flex-col justify-between p-2 rounded-lg border text-left transition-all ${
+                    account.disabled
+                      ? 'border-rose-200 bg-rose-50/60 hover:bg-rose-100/70 dark:border-rose-900/40 dark:bg-rose-950/20'
+                      : 'border-border/80 bg-background hover:border-primary/50 hover:bg-primary/5'
+                  }`}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                      {account.name.split(' ')[0]}
+                    </span>
+                    <Badge variant={account.roleBadge} className={`text-[10px] py-0 px-1.5 h-4.5 ${account.badgeColor}`}>
+                      {account.role}
+                    </Badge>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-mono truncate w-full">
+                    {account.email.split('@')[0]}
+                  </span>
                 </button>
-              </div>
+              ))}
             </div>
+          </CardFooter>
+        </Card>
 
-            {/* Submit Button */}
-            <button
-              id="btn-login"
-              type="submit"
-              disabled={isLoading}
-              className="w-full mt-2 py-3 px-4 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 active:scale-[0.99] transition-all duration-150 shadow-lg shadow-indigo-600/30 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Memverifikasi Akun...</span>
-                </>
-              ) : (
-                <span>Masuk Sekarang</span>
-              )}
-            </button>
-          </form>
-
-          {/* Info Pendaftaran Mandiri Tidak Ada (Sesuai Ketentuan) */}
-          <div className="mt-6 pt-5 border-t border-slate-800 text-center">
-            <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400">
-              <Info className="w-3.5 h-3.5 text-slate-500" />
-              <span>Tidak ada pendaftaran mandiri. Akun hanya dibuat oleh HRD.</span>
-            </div>
+        {/* Security & System Info Footer */}
+        <div className="mt-6 flex flex-col items-center gap-1 text-center">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Koneksi Terenkripsi · Pencatatan Absensi Jam Server WIB (BR-02)</span>
           </div>
-        </div>
-
-        {/* Quick Demo Accounts Helper (Memudahkan Pengujian Dosen/Penguji/User) */}
-        <div className="mt-6 bg-slate-900/60 border border-slate-800/60 rounded-xl p-4 text-xs text-slate-400">
-          <p className="font-semibold text-slate-300 mb-2.5 flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Pilih Akun Uji Cepat (Password: Latihan#2026):</span>
+          <p className="text-[11px] text-muted-foreground/75">
+            © {new Date().getFullYear()} PT Karsa Lintas Nusantara. Hak Cipta Dilindungi.
           </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setQuickAccount('rina.kusumawardani@karsalintas.test')}
-              className="p-2 text-left rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-indigo-500/50 transition-all"
-            >
-              <div className="font-semibold text-slate-200">Rina (HRD)</div>
-              <div className="text-[10px] text-slate-400 truncate">rina.kusumawardani@...</div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setQuickAccount('maya.anggraini@karsalintas.test')}
-              className="p-2 text-left rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-indigo-500/50 transition-all"
-            >
-              <div className="font-semibold text-slate-200">Maya (Atasan)</div>
-              <div className="text-[10px] text-slate-400 truncate">maya.anggraini@...</div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setQuickAccount('andi.wijaya@karsalintas.test')}
-              className="p-2 text-left rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-indigo-500/50 transition-all"
-            >
-              <div className="font-semibold text-slate-200">Andi (Karyawan)</div>
-              <div className="text-[10px] text-slate-400 truncate">andi.wijaya@...</div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setQuickAccount('bambang.hartono@karsalintas.test')}
-              className="p-2 text-left rounded-lg bg-rose-950/20 hover:bg-rose-950/40 border border-rose-900/50 hover:border-rose-500 transition-all text-rose-300"
-            >
-              <div className="font-semibold text-rose-200">Bambang (Nonaktif)</div>
-              <div className="text-[10px] text-rose-400 truncate">Uji Tolak BR-01</div>
-            </button>
-          </div>
         </div>
       </div>
     </div>

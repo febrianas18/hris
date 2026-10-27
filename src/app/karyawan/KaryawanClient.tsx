@@ -18,14 +18,15 @@ import {
   CalendarDays,
   Briefcase,
   ShieldCheck,
-  Mail,
-  Phone,
-  KeyRound,
   Info,
-  UserRound,
   BadgeCheck,
   Ban,
+  RotateCcw,
 } from 'lucide-react';
+import { PageHeader, MetaDot } from '@/components/app/PageHeader';
+import { SectionCard, EmptyState } from '@/components/app/SectionCard';
+import { StatCard, Meter } from '@/components/app/StatCard';
+import { FormField } from '@/components/app/FormField';
 
 export interface DivisiOption {
   id: string;
@@ -120,10 +121,15 @@ const roleLabel: Record<EmployeeItem['peran'], string> = {
 };
 
 const roleClass: Record<EmployeeItem['peran'], string> = {
-  karyawan: 'bg-slate-100 text-slate-700 border-slate-200',
-  atasan: 'bg-amber-50 text-amber-700 border-amber-200',
-  hrd: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  karyawan: 'bg-muted text-muted-foreground border-border/70',
+  atasan: 'bg-chart-2/15 text-chart-5 border-chart-2/40',
+  hrd: 'bg-primary/10 text-primary border-primary/25',
 };
+
+const controlClass =
+  'h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground transition-colors duration-150 placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50';
+
+const selectClass = `${controlClass} cursor-pointer`;
 
 const statusLabel: Record<string, string> = {
   tetap: 'Tetap',
@@ -177,6 +183,15 @@ function statusPengajuanLabel(status: string) {
     dibatalkan: 'Dibatalkan',
   };
   return map[status] ?? status;
+}
+
+/** Warna titik status; teks status selalu ditampilkan agar tidak bergantung pada warna. */
+function statusDotClass(status: string) {
+  const normalized = status.toLowerCase();
+  if (['disetujui', 'hadir', 'aktif'].includes(normalized)) return 'bg-primary';
+  if (['disetujui_atasan', 'terlambat'].includes(normalized)) return 'bg-chart-2';
+  if (['ditolak', 'dibatalkan', 'alpa'].includes(normalized)) return 'bg-destructive';
+  return 'bg-muted-foreground/50';
 }
 
 export default function KaryawanClient({
@@ -236,6 +251,18 @@ export default function KaryawanClient({
     selectedDivision?.manajer_id &&
     selectedDivision.manajer_id !== editing?.id;
   const editingSelf = editing?.id === currentUserId;
+
+  const activeFilterCount = [divisionFilter !== 'all', roleFilter !== 'all', statusFilter !== 'all'].filter(
+    Boolean
+  ).length;
+  const hasActiveFilter = activeFilterCount > 0 || search.trim().length > 0;
+
+  function resetFilters() {
+    setSearch('');
+    setDivisionFilter('all');
+    setRoleFilter('all');
+    setStatusFilter('all');
+  }
 
   function openCreate() {
     setEditing(null);
@@ -456,66 +483,182 @@ export default function KaryawanClient({
   }
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-7 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
-              <Users className="w-5 h-5" />
+    <div className="space-y-6">
+      <PageHeader
+        accent="info"
+        title="Data Karyawan"
+        icon={Users}
+        actions={
+          isHrd ? (
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors duration-150 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <Plus aria-hidden="true" className="size-4" strokeWidth={1.75} />
+              Tambah Karyawan
+            </button>
+          ) : null
+        }
+      />
+
+      {/* Ringkasan */}
+      <section aria-label="Ringkasan karyawan" className="mb-6">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {/* 1. Total Karyawan (Bold Blue) */}
+          <div
+            aria-label="Total Karyawan"
+            className="dash-blue-card relative flex flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-sm"
+          >
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-blue-400/20 blur-xl"
+            />
+            <div className="relative z-10 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-blue-300" />
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/80">
+                  Total Karyawan
+                </p>
+              </div>
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-blue-200 ring-1 ring-inset ring-white/15 shadow-2xs">
+                <Users className="size-4.5" strokeWidth={1.9} />
+              </span>
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Data Karyawan</h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                {isHrd
-                  ? 'Kelola akun, peran, divisi, dan status kepegawaian (BR-01).'
-                  : 'Lihat data dan kuota cuti anggota divisi Anda.'}
-              </p>
+            <div className="relative z-10 mt-3">
+              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                <span className="font-heading font-mono text-3xl font-extrabold text-white tabular-nums">
+                  {stats.total}
+                </span>
+                <span className="text-xs font-semibold text-white/80">orang</span>
+              </div>
+              <p className="mt-1.5 text-xs text-white/80">Seluruh akun terdaftar</p>
             </div>
           </div>
 
-          {isHrd && (
-            <button
-              onClick={openCreate}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Tambah Karyawan
-            </button>
-          )}
+          {/* 2. Aktif (Bold Emerald) */}
+          <div
+            aria-label="Karyawan Aktif"
+            className="dash-emerald-card relative flex flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-sm"
+          >
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-emerald-400/20 blur-xl"
+            />
+            <div className="relative z-10 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-[#2ed8b6]" />
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/80">
+                  Aktif
+                </p>
+              </div>
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-[#8df1d8] ring-1 ring-inset ring-white/15 shadow-2xs">
+                <BadgeCheck className="size-4.5" strokeWidth={1.9} />
+              </span>
+            </div>
+            <div className="relative z-10 mt-3">
+              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                <span className="font-heading font-mono text-3xl font-extrabold text-white tabular-nums">
+                  {stats.active}
+                </span>
+                <span className="text-xs font-semibold text-white/80">orang</span>
+              </div>
+              <p className="mt-1.5 text-xs text-white/80">Dapat login dan beraktivitas</p>
+            </div>
+          </div>
+
+          {/* 3. Nonaktif (Bold Rose) */}
+          <div
+            aria-label="Karyawan Nonaktif"
+            className="dash-rose-card relative flex flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-sm"
+          >
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-rose-400/20 blur-xl"
+            />
+            <div className="relative z-10 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-rose-300" />
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/80">
+                  Nonaktif
+                </p>
+              </div>
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-rose-200 ring-1 ring-inset ring-white/15 shadow-2xs">
+                <Ban className="size-4.5" strokeWidth={1.9} />
+              </span>
+            </div>
+            <div className="relative z-10 mt-3">
+              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                <span className="font-heading font-mono text-3xl font-extrabold text-white tabular-nums">
+                  {stats.inactive}
+                </span>
+                <span className="text-xs font-semibold text-white/80">orang</span>
+              </div>
+              <p className="mt-1.5 text-xs text-white/80">Akun dinonaktifkan sementara</p>
+            </div>
+          </div>
+
+          {/* 4. Atasan Aktif (Bold Amber) */}
+          <div
+            aria-label="Atasan Aktif"
+            className="dash-amber-card relative flex flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-sm"
+          >
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-amber-400/20 blur-xl"
+            />
+            <div className="relative z-10 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-amber-300" />
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/80">
+                  Atasan Aktif
+                </p>
+              </div>
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-amber-200 ring-1 ring-inset ring-white/15 shadow-2xs">
+                <ShieldCheck className="size-4.5" strokeWidth={1.9} />
+              </span>
+            </div>
+            <div className="relative z-10 mt-3">
+              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                <span className="font-heading font-mono text-3xl font-extrabold text-white tabular-nums">
+                  {stats.atasan}
+                </span>
+                <span className="text-xs font-semibold text-white/80">orang</span>
+              </div>
+              <p className="mt-1.5 text-xs text-white/80">Manajer divisi yang aktif</p>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={<Users className="w-4 h-4" />} label="Total Karyawan" value={stats.total} tone="slate" />
-        <StatCard icon={<BadgeCheck className="w-4 h-4" />} label="Aktif" value={stats.active} tone="emerald" />
-        <StatCard icon={<Ban className="w-4 h-4" />} label="Nonaktif" value={stats.inactive} tone="rose" />
-        <StatCard icon={<ShieldCheck className="w-4 h-4" />} label="Atasan Aktif" value={stats.atasan} tone="amber" />
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+      {/* Pencarian & filter */}
+      <section aria-label="Pencarian dan filter karyawan" className="mb-6">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-card p-3 shadow-xs">
+          <div className="relative min-w-[200px] flex-1">
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              strokeWidth={1.75}
+            />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Cari nama, NIK, email, atau jabatan..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 pl-9 pr-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+              aria-label="Cari karyawan"
+              className="h-9 w-full rounded-lg border border-input bg-background pr-3 pl-9 text-sm text-foreground transition-colors duration-150 placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
-              <Filter className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Filter aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
               Filter
-            </div>
+            </span>
             <select
               value={divisionFilter}
               onChange={(e) => setDivisionFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              aria-label="Filter divisi"
+              className="h-9 cursor-pointer rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors duration-150 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <option value="all">Semua Divisi</option>
               {divisions.map((d) => (
@@ -527,7 +670,8 @@ export default function KaryawanClient({
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              aria-label="Filter peran"
+              className="h-9 cursor-pointer rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors duration-150 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <option value="all">Semua Peran</option>
               <option value="karyawan">Karyawan</option>
@@ -537,37 +681,99 @@ export default function KaryawanClient({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              aria-label="Filter status"
+              className="h-9 cursor-pointer rounded-lg border border-input bg-background px-2.5 text-sm text-foreground transition-colors duration-150 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <option value="all">Semua Status</option>
               <option value="active">Aktif</option>
               <option value="inactive">Nonaktif</option>
             </select>
+
+            {activeFilterCount > 0 ? (
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary tabular-nums">
+                {activeFilterCount} filter
+              </span>
+            ) : null}
+
+            {hasActiveFilter ? (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <RotateCcw aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
+                Reset
+              </button>
+            ) : null}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <SectionCard
+        title="Daftar karyawan"
+        description="Data akun, peran, dan status kepegawaian."
+        icon={Users}
+        accent="info"
+        bodyClassName="p-0"
+        action={
+          <span className="inline-flex items-center rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground tabular-nums">
+            {filtered.length} tampil
+          </span>
+        }
+      >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] text-sm">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200/80 text-left text-[11px] uppercase tracking-wider text-slate-500">
-                <th className="px-5 py-3.5 font-semibold">Karyawan</th>
-                <th className="px-4 py-3.5 font-semibold">NIK</th>
-                <th className="px-4 py-3.5 font-semibold">Jabatan / Divisi</th>
-                <th className="px-4 py-3.5 font-semibold">Peran</th>
-                <th className="px-4 py-3.5 font-semibold">Status</th>
-                <th className="px-4 py-3.5 font-semibold">Kuota {currentYear}</th>
-                <th className="px-4 py-3.5 font-semibold text-right">Aksi</th>
+          <table className="w-full min-w-[880px] text-left text-xs">
+            <caption className="sr-only">
+              Daftar karyawan beserta NIK, jabatan, divisi, peran, status, dan sisa kuota cuti {currentYear}
+            </caption>
+            <thead className="border-b border-border/70 text-[10px] tracking-[0.08em] text-muted-foreground uppercase">
+              <tr>
+                <th scope="col" className="px-2.5 py-2.5 font-semibold">Karyawan</th>
+                <th scope="col" className="px-2.5 py-2.5 font-semibold">NIK</th>
+                <th scope="col" className="px-2.5 py-2.5 font-semibold">Jabatan / Divisi</th>
+                <th scope="col" className="px-2.5 py-2.5 font-semibold">Peran</th>
+                <th scope="col" className="px-2.5 py-2.5 font-semibold">Status</th>
+                <th scope="col" className="px-2.5 py-2.5 font-semibold">Kuota {currentYear}</th>
+                <th scope="col" className="px-2.5 py-2.5 text-right font-semibold">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border/60">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-14 text-center text-slate-500">
-                    <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                    Tidak ada karyawan yang cocok dengan filter.
+                  <td colSpan={7} className="px-4 py-8">
+                    <EmptyState
+                      icon={Users}
+                      title={hasActiveFilter ? 'Tidak ada karyawan yang cocok dengan filter' : 'Belum ada karyawan'}
+                      description={
+                        hasActiveFilter
+                          ? 'Ubah kata kunci pencarian atau reset filter untuk melihat seluruh data.'
+                          : isHrd
+                            ? 'Belum ada karyawan terdaftar. Tambahkan akun karyawan pertama melalui tombol di bawah.'
+                            : 'Belum ada data karyawan pada divisi Anda.'
+                      }
+                    />
+                    <div className="mt-3 flex justify-center">
+                      {hasActiveFilter ? (
+                        <button
+                          type="button"
+                          onClick={resetFilters}
+                          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-border/70 bg-card px-3 text-xs font-semibold text-foreground transition-colors duration-150 hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        >
+                          <RotateCcw aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
+                          Reset filter
+                        </button>
+                      ) : isHrd ? (
+                        <button
+                          type="button"
+                          onClick={openCreate}
+                          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors duration-150 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        >
+                          <Plus aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
+                          Tambah Karyawan
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               )}
@@ -575,106 +781,130 @@ export default function KaryawanClient({
               {filtered.map((e) => {
                 const sisa = e.kuota ? Math.max(0, e.kuota.jatah_hari - e.kuota.terpakai_hari) : null;
                 return (
-                  <tr key={e.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-5 py-4">
+                  <tr key={e.id} className="transition-colors duration-150 hover:bg-muted/40">
+                    <td className="px-2.5 py-3 align-middle">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center text-xs font-bold shrink-0">
+                        <div
+                          aria-hidden="true"
+                          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary"
+                        >
                           {initials(e.nama_lengkap)}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-semibold text-slate-900 truncate flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
                             {e.nama_lengkap}
                             {e.id === currentUserId && (
-                              <span className="text-[10px] font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5">
+                              <span className="rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                                 Anda
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-slate-500 truncate">{e.email}</div>
+                          <div className="truncate text-[11px] text-muted-foreground">
+                            {e.email}
+                            {e.nomor_hp ? ` · ${e.nomor_hp}` : ''}
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 font-mono text-xs text-slate-600">{e.nik_karyawan}</td>
-                    <td className="px-4 py-4">
-                      <div className="font-medium text-slate-800">{e.jabatan}</div>
-                      <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                        <Building2 className="w-3 h-3" />
+                    <td className="px-2.5 py-3 align-middle">
+                      <span className="whitespace-nowrap font-mono text-[11px] text-foreground/80 tabular-nums">
+                        {e.nik_karyawan}
+                      </span>
+                    </td>
+                    <td className="px-2.5 py-3 align-middle">
+                      <div className="text-xs font-medium text-foreground">{e.jabatan}</div>
+                      <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Building2 aria-hidden="true" className="size-3" strokeWidth={1.75} />
                         {e.divisi?.nama ?? '-'}
                       </div>
                     </td>
-                    <td className="px-4 py-4">
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${roleClass[e.peran]}`}>
+                    <td className="px-2.5 py-3 align-middle">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${roleClass[e.peran]}`}
+                      >
                         {roleLabel[e.peran]}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-2.5 py-3 align-middle">
                       <div className="space-y-1">
                         <span
-                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
                             e.aktif
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-rose-50 text-rose-700 border-rose-200'
+                              ? 'border-primary/25 bg-primary/10 text-primary'
+                              : 'border-destructive/25 bg-destructive/10 text-destructive'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${e.aktif ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                          <span
+                            aria-hidden="true"
+                            className={`size-1.5 rounded-full ${e.aktif ? 'bg-primary' : 'bg-destructive'}`}
+                          />
                           {e.aktif ? 'Aktif' : 'Nonaktif'}
                         </span>
-                        <div className="text-[11px] text-slate-500">{statusLabel[e.status_kerja] ?? e.status_kerja}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {statusLabel[e.status_kerja] ?? e.status_kerja}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-2.5 py-3 align-middle">
                       {e.kuota ? (
-                        <div>
-                          <div className="text-xs font-semibold text-slate-800">
-                            {sisa} <span className="font-normal text-slate-500">hari tersisa</span>
+                        <div className="min-w-[96px]">
+                          <div className="text-xs font-semibold text-foreground tabular-nums">
+                            {sisa}{' '}
+                            <span className="font-normal text-muted-foreground">hari tersisa</span>
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-[11px] text-muted-foreground tabular-nums">
                             {e.kuota.terpakai_hari}/{e.kuota.jatah_hari} terpakai
                           </div>
-                          <div className="mt-1.5 h-1.5 w-24 rounded-full bg-slate-100 overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-indigo-500"
-                              style={{
-                                width: `${Math.min(100, (e.kuota.terpakai_hari / Math.max(1, e.kuota.jatah_hari)) * 100)}%`,
-                              }}
+                          <div className="mt-1.5 w-24">
+                            <Meter
+                              value={e.kuota.terpakai_hari}
+                              max={e.kuota.jatah_hari}
+                              label={`Pemakaian kuota cuti ${e.nama_lengkap}`}
                             />
                           </div>
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400">Belum ditetapkan</span>
+                        <span className="text-[11px] text-muted-foreground">Belum ditetapkan</span>
                       )}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-2.5 py-3 align-middle">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
+                          type="button"
                           onClick={() => openDetail(e)}
                           title="Lihat detail"
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-border/70 bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <Eye aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
                           Detail
                         </button>
                         {isHrd && (
                           <button
+                            type="button"
                             onClick={() => openEdit(e)}
                             title="Edit karyawan"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+                            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/10 px-2.5 text-xs font-medium text-primary transition-colors duration-150 hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Edit3 aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
                             Edit
                           </button>
                         )}
                         {isHrd && e.id !== currentUserId && (
                           <button
+                            type="button"
                             onClick={() => toggleActive(e)}
                             title={e.aktif ? 'Nonaktifkan' : 'Aktifkan'}
-                            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                            className={`inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
                               e.aktif
-                                ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
-                                : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                ? 'border-destructive/25 bg-destructive/5 text-destructive hover:bg-destructive/10'
+                                : 'border-primary/25 bg-primary/10 text-primary hover:bg-primary/15'
                             }`}
                           >
-                            {e.aktif ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                            {e.aktif ? (
+                              <UserX aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
+                            ) : (
+                              <UserCheck aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
+                            )}
                             {e.aktif ? 'Nonaktifkan' : 'Aktifkan'}
                           </button>
                         )}
@@ -686,232 +916,260 @@ export default function KaryawanClient({
             </tbody>
           </table>
         </div>
-        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500 flex items-center justify-between">
-          <span>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 px-5 py-3 text-xs text-muted-foreground">
+          <span className="tabular-nums">
             Menampilkan {filtered.length} dari {employees.length} karyawan
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5" />
+            <Info aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
             Gaji tidak ditampilkan di modul ini (BR-11).
           </span>
         </div>
-      </div>
+      </SectionCard>
 
       {/* Create / Edit Modal */}
       {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto">
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 my-4">
-            <div className="flex items-start justify-between gap-4 px-5 sm:px-6 py-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/40 p-3 backdrop-blur-sm sm:items-center sm:p-6">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="employee-modal-title"
+            className="my-4 w-full max-w-2xl overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xl"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-border/70 px-5 py-4 sm:px-6">
               <div>
-                <h2 className="text-lg font-bold text-slate-900">
+                <h2
+                  id="employee-modal-title"
+                  className="font-heading text-base font-semibold tracking-tight text-foreground"
+                >
                   {modalMode === 'create' ? 'Tambah Karyawan' : 'Edit Data Karyawan'}
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                   {modalMode === 'create'
                     ? 'Akun login, profil, dan kuota cuti dibuat sekaligus.'
                     : 'Perubahan peran/divisi otomatis menjaga aturan satu Atasan per divisi.'}
                 </p>
               </div>
               <button
+                type="button"
                 onClick={closeModal}
                 disabled={saving}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:opacity-50"
+                aria-label="Tutup formulir"
+                className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <X className="w-5 h-5" />
+                <X aria-hidden="true" className="size-4" strokeWidth={1.75} />
               </button>
             </div>
 
-            <form onSubmit={submitForm} className="px-5 sm:px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              {formError && (
-                <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              )}
+            <form onSubmit={submitForm} className="max-h-[70vh] overflow-y-auto">
+              <div className="space-y-4 px-5 py-5 sm:px-6">
+                {formError && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2 rounded-lg border border-destructive/25 bg-destructive/5 px-3.5 py-3 text-xs text-destructive"
+                  >
+                    <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
+                    <span>{formError}</span>
+                  </div>
+                )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Email Login" icon={<Mail className="w-3.5 h-3.5" />}>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    disabled={modalMode === 'edit'}
-                    placeholder="nama@karsalintas.test"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm disabled:bg-slate-50 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    label="Email Login"
+                    htmlFor="karyawan-email"
                     required
-                  />
-                  {modalMode === 'edit' && (
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Email login tidak dapat diubah dari modul ini.
-                    </p>
-                  )}
-                </Field>
-
-                {modalMode === 'create' && (
-                  <Field label="Kata Sandi Awal" icon={<KeyRound className="w-3.5 h-3.5" />}>
+                    hint={modalMode === 'edit' ? 'Email login tidak dapat diubah dari modul ini.' : undefined}
+                  >
                     <input
-                      type="password"
-                      value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
-                      placeholder="Minimal 8 karakter"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                      id="karyawan-email"
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      disabled={modalMode === 'edit'}
+                      placeholder="nama@karsalintas.test"
+                      className={controlClass}
                       required
-                      minLength={8}
                     />
-                  </Field>
-                )}
+                  </FormField>
 
-                <Field label="NIK Karyawan" icon={<BadgeCheck className="w-3.5 h-3.5" />}>
-                  <input
-                    value={form.nik_karyawan}
-                    onChange={(e) => setForm({ ...form, nik_karyawan: e.target.value.toUpperCase() })}
-                    placeholder="KLN-0000"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
-                    required
-                  />
-                </Field>
-
-                <Field label="Nama Lengkap" icon={<UserRound className="w-3.5 h-3.5" />}>
-                  <input
-                    value={form.nama_lengkap}
-                    onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })}
-                    placeholder="Nama sesuai dokumen"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
-                    required
-                  />
-                </Field>
-
-                <Field label="Nomor HP" icon={<Phone className="w-3.5 h-3.5" />}>
-                  <input
-                    value={form.nomor_hp}
-                    onChange={(e) => setForm({ ...form, nomor_hp: e.target.value })}
-                    placeholder="08xxxxxxxxxx"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
-                  />
-                </Field>
-
-                <Field label="Jabatan" icon={<Briefcase className="w-3.5 h-3.5" />}>
-                  <input
-                    value={form.jabatan}
-                    onChange={(e) => setForm({ ...form, jabatan: e.target.value })}
-                    placeholder="Contoh: Staf Administrasi"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
-                    required
-                  />
-                </Field>
-
-                <Field label="Peran" icon={<ShieldCheck className="w-3.5 h-3.5" />}>
-                  <select
-                    value={form.peran}
-                    onChange={(e) =>
-                      setForm({ ...form, peran: e.target.value as FormState['peran'] })
-                    }
-                    disabled={editingSelf}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm disabled:bg-slate-50 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                  >
-                    <option value="karyawan">Karyawan</option>
-                    <option value="atasan">Atasan (Manajer Divisi)</option>
-                    <option value="hrd">HRD</option>
-                  </select>
-                  {editingSelf && (
-                    <p className="text-[11px] text-amber-600 mt-1">
-                      Anda tidak dapat mengubah peran akun sendiri (BR-01).
-                    </p>
+                  {modalMode === 'create' && (
+                    <FormField label="Kata Sandi Awal" htmlFor="karyawan-password" required>
+                      <input
+                        id="karyawan-password"
+                        type="password"
+                        value={form.password}
+                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        placeholder="Minimal 8 karakter"
+                        className={controlClass}
+                        required
+                        minLength={8}
+                      />
+                    </FormField>
                   )}
-                </Field>
 
-                <Field label="Divisi" icon={<Building2 className="w-3.5 h-3.5" />}>
-                  <select
-                    value={form.divisi_id}
-                    onChange={(e) => setForm({ ...form, divisi_id: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                    required
-                  >
-                    <option value="">Pilih divisi</option>
-                    {divisions.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.nama}
-                        {d.manajer_nama ? ` — manajer: ${d.manajer_nama}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {divisionHasOtherManager && (
-                    <p className="text-[11px] text-amber-600 mt-1">
-                      Divisi ini sudah memiliki manajer. Kosongkan manajer lama di Pengaturan
-                      terlebih dahulu.
-                    </p>
-                  )}
-                </Field>
-
-                <Field label="Status Kerja" icon={<BadgeCheck className="w-3.5 h-3.5" />}>
-                  <select
-                    value={form.status_kerja}
-                    onChange={(e) => setForm({ ...form, status_kerja: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                  >
-                    <option value="tetap">Tetap</option>
-                    <option value="kontrak">Kontrak</option>
-                    <option value="magang">Magang</option>
-                  </select>
-                </Field>
-
-                <Field label="Tanggal Masuk" icon={<CalendarDays className="w-3.5 h-3.5" />}>
-                  <input
-                    type="date"
-                    value={form.tanggal_masuk}
-                    onChange={(e) => setForm({ ...form, tanggal_masuk: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                    required
-                  />
-                </Field>
-
-                {modalMode === 'create' && (
-                  <Field label={`Jatah Cuti ${currentYear}`} icon={<CalendarDays className="w-3.5 h-3.5" />}>
+                  <FormField label="NIK Karyawan" htmlFor="karyawan-nik" required>
                     <input
-                      type="number"
-                      min={0}
-                      max={12}
-                      value={form.jatah_hari}
-                      onChange={(e) => setForm({ ...form, jatah_hari: Number(e.target.value) })}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                      id="karyawan-nik"
+                      value={form.nik_karyawan}
+                      onChange={(e) => setForm({ ...form, nik_karyawan: e.target.value.toUpperCase() })}
+                      placeholder="KLN-0000"
+                      className={`${controlClass} font-mono`}
+                      required
                     />
-                  </Field>
-                )}
+                  </FormField>
+
+                  <FormField label="Nama Lengkap" htmlFor="karyawan-nama" required>
+                    <input
+                      id="karyawan-nama"
+                      value={form.nama_lengkap}
+                      onChange={(e) => setForm({ ...form, nama_lengkap: e.target.value })}
+                      placeholder="Nama sesuai dokumen"
+                      className={controlClass}
+                      required
+                    />
+                  </FormField>
+
+                  <FormField label="Nomor HP" htmlFor="karyawan-hp">
+                    <input
+                      id="karyawan-hp"
+                      value={form.nomor_hp}
+                      onChange={(e) => setForm({ ...form, nomor_hp: e.target.value })}
+                      placeholder="08xxxxxxxxxx"
+                      className={controlClass}
+                    />
+                  </FormField>
+
+                  <FormField label="Jabatan" htmlFor="karyawan-jabatan" required>
+                    <input
+                      id="karyawan-jabatan"
+                      value={form.jabatan}
+                      onChange={(e) => setForm({ ...form, jabatan: e.target.value })}
+                      placeholder="Contoh: Staf Administrasi"
+                      className={controlClass}
+                      required
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="Peran"
+                    htmlFor="karyawan-peran"
+                    hint={editingSelf ? 'Anda tidak dapat mengubah peran akun sendiri (BR-01).' : undefined}
+                  >
+                    <select
+                      id="karyawan-peran"
+                      value={form.peran}
+                      onChange={(e) =>
+                        setForm({ ...form, peran: e.target.value as FormState['peran'] })
+                      }
+                      disabled={editingSelf}
+                      className={selectClass}
+                    >
+                      <option value="karyawan">Karyawan</option>
+                      <option value="atasan">Atasan (Manajer Divisi)</option>
+                      <option value="hrd">HRD</option>
+                    </select>
+                  </FormField>
+
+                  <FormField
+                    label="Divisi"
+                    htmlFor="karyawan-divisi"
+                    required
+                    hint={
+                      divisionHasOtherManager
+                        ? 'Divisi ini sudah memiliki manajer. Kosongkan manajer lama di Pengaturan terlebih dahulu.'
+                        : undefined
+                    }
+                  >
+                    <select
+                      id="karyawan-divisi"
+                      value={form.divisi_id}
+                      onChange={(e) => setForm({ ...form, divisi_id: e.target.value })}
+                      className={selectClass}
+                      required
+                    >
+                      <option value="">Pilih divisi</option>
+                      {divisions.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nama}
+                          {d.manajer_nama ? ` — manajer: ${d.manajer_nama}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+
+                  <FormField label="Status Kerja" htmlFor="karyawan-status-kerja">
+                    <select
+                      id="karyawan-status-kerja"
+                      value={form.status_kerja}
+                      onChange={(e) => setForm({ ...form, status_kerja: e.target.value })}
+                      className={selectClass}
+                    >
+                      <option value="tetap">Tetap</option>
+                      <option value="kontrak">Kontrak</option>
+                      <option value="magang">Magang</option>
+                    </select>
+                  </FormField>
+
+                  <FormField label="Tanggal Masuk" htmlFor="karyawan-tanggal-masuk" required>
+                    <input
+                      id="karyawan-tanggal-masuk"
+                      type="date"
+                      value={form.tanggal_masuk}
+                      onChange={(e) => setForm({ ...form, tanggal_masuk: e.target.value })}
+                      className={controlClass}
+                      required
+                    />
+                  </FormField>
+
+                  {modalMode === 'create' && (
+                    <FormField label={`Jatah Cuti ${currentYear}`} htmlFor="karyawan-jatah-cuti">
+                      <input
+                        id="karyawan-jatah-cuti"
+                        type="number"
+                        min={0}
+                        max={12}
+                        value={form.jatah_hari}
+                        onChange={(e) => setForm({ ...form, jatah_hari: Number(e.target.value) })}
+                        className={`${controlClass} tabular-nums`}
+                      />
+                    </FormField>
+                  )}
+                </div>
+
+                <label className="flex flex-wrap items-center gap-2.5 rounded-xl border border-border/70 bg-muted/20 px-3.5 py-3">
+                  <input
+                    type="checkbox"
+                    checked={form.aktif}
+                    onChange={(e) => setForm({ ...form, aktif: e.target.checked })}
+                    disabled={editingSelf}
+                    className="size-4 rounded border-input text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <span className="text-sm text-foreground">
+                    Akun aktif (dapat login dan melakukan aksi)
+                  </span>
+                  {editingSelf && (
+                    <span className="ml-auto text-[11px] text-destructive">
+                      Tidak dapat menonaktifkan diri sendiri
+                    </span>
+                  )}
+                </label>
               </div>
 
-              <label className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-3">
-                <input
-                  type="checkbox"
-                  checked={form.aktif}
-                  onChange={(e) => setForm({ ...form, aktif: e.target.checked })}
-                  disabled={editingSelf}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="text-sm text-slate-700">
-                  Akun aktif (dapat login dan melakukan aksi)
-                </span>
-                {editingSelf && (
-                  <span className="text-[11px] text-amber-600 ml-auto">
-                    Tidak dapat menonaktifkan diri sendiri
-                  </span>
-                )}
-              </label>
-
-              <div className="flex items-center justify-end gap-2 pt-1">
+              <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 border-t border-border/70 bg-card px-5 py-3.5 sm:px-6">
                 <button
                   type="button"
                   onClick={closeModal}
                   disabled={saving}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                  className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg border border-border/70 bg-card px-3.5 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                  className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors duration-150 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {saving && <Loader2 aria-hidden="true" className="size-4 animate-spin" strokeWidth={1.75} />}
                   {saving ? 'Menyimpan...' : modalMode === 'create' ? 'Buat Akun' : 'Simpan Perubahan'}
                 </button>
               </div>
@@ -922,76 +1180,89 @@ export default function KaryawanClient({
 
       {/* Detail Modal */}
       {detailId && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto">
-          <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 my-4">
-            <div className="flex items-start justify-between gap-4 px-5 sm:px-6 py-4 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/40 p-3 backdrop-blur-sm sm:items-center sm:p-6">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="employee-detail-title"
+            className="my-4 flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-xl"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-border/70 px-5 py-4 sm:px-6">
               <div>
-                <h2 className="text-lg font-bold text-slate-900">Detail Karyawan</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <h2
+                  id="employee-detail-title"
+                  className="font-heading text-base font-semibold tracking-tight text-foreground"
+                >
+                  Detail Karyawan
+                </h2>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                   Data kepegawaian, kuota cuti, dan aktivitas terbaru.
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => {
                   setDetailId(null);
                   setDetail(null);
                   setDetailError(null);
                 }}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                aria-label="Tutup detail karyawan"
+                className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
-                <X className="w-5 h-5" />
+                <X aria-hidden="true" className="size-4" strokeWidth={1.75} />
               </button>
             </div>
 
-            <div className="px-5 sm:px-6 py-5 max-h-[72vh] overflow-y-auto space-y-5">
+            <div className="space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
               {detailLoading && (
-                <div className="flex items-center justify-center py-12 text-slate-500">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                <div
+                  aria-busy="true"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/20 py-10 text-xs text-muted-foreground"
+                >
+                  <Loader2 aria-hidden="true" className="size-4 animate-spin" strokeWidth={1.75} />
                   Memuat detail...
                 </div>
               )}
 
               {detailError && (
-                <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-lg border border-destructive/25 bg-destructive/5 px-3.5 py-3 text-xs text-destructive"
+                >
+                  <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
                   <span>{detailError}</span>
                 </div>
               )}
 
               {detail && (
                 <>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                    <div className="w-14 h-14 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center justify-center text-lg font-bold">
+                  <div className="flex flex-col gap-4 rounded-xl border border-border/70 bg-muted/20 p-4 sm:flex-row sm:items-center">
+                    <div
+                      aria-hidden="true"
+                      className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary"
+                    >
                       {initials(detail.profile.nama_lengkap)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-bold text-slate-900">
+                        <h3 className="font-heading text-sm font-semibold tracking-tight text-foreground">
                           {detail.profile.nama_lengkap}
                         </h3>
-                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${roleClass[detail.profile.peran]}`}>
-                          {roleLabel[detail.profile.peran]}
-                        </span>
-                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                          detail.profile.aktif
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}>
-                          {detail.profile.aktif ? 'Aktif' : 'Nonaktif'}
-                        </span>
+                        <RolePill peran={detail.profile.peran} />
+                        <ActivePill active={detail.profile.aktif} />
                       </div>
-                      <div className="mt-1 text-sm text-slate-600">
+                      <div className="mt-1 text-xs text-muted-foreground">
                         {detail.profile.jabatan} · {detail.profile.divisi?.nama ?? '-'}
                       </div>
-                      <div className="mt-1 text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
-                        <span>{detail.profile.nik_karyawan}</span>
+                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                        <span className="font-mono tabular-nums">{detail.profile.nik_karyawan}</span>
                         <span>{detail.profile.email}</span>
                         {detail.profile.nomor_hp && <span>{detail.profile.nomor_hp}</span>}
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <InfoBox label="Status Kerja" value={statusLabel[detail.profile.status_kerja] ?? detail.profile.status_kerja} />
                     <InfoBox label="Tanggal Masuk" value={formatDate(detail.profile.tanggal_masuk)} />
                     <InfoBox
@@ -1005,37 +1276,42 @@ export default function KaryawanClient({
                   </div>
 
                   <section>
-                    <h4 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
-                      <CalendarDays className="w-4 h-4 text-indigo-500" />
+                    <h3 className="mb-2 flex items-center gap-1.5 font-heading text-xs font-semibold tracking-tight text-foreground">
+                      <CalendarDays aria-hidden="true" className="size-3.5 text-primary" strokeWidth={1.75} />
                       Riwayat Pengajuan Terbaru
-                    </h4>
-                    <div className="rounded-xl border border-slate-200 overflow-hidden">
-                      <table className="w-full text-xs">
-                        <thead className="bg-slate-50 text-slate-500">
+                    </h3>
+                    <div className="overflow-x-auto rounded-xl border border-border/70">
+                      <table className="w-full min-w-[480px] text-left text-xs">
+                        <caption className="sr-only">Riwayat pengajuan cuti dan izin terbaru</caption>
+                        <thead className="border-b border-border/70 bg-muted/20 text-[10px] tracking-[0.08em] text-muted-foreground uppercase">
                           <tr>
-                            <th className="px-3 py-2 text-left font-semibold">Jenis</th>
-                            <th className="px-3 py-2 text-left font-semibold">Tanggal</th>
-                            <th className="px-3 py-2 text-left font-semibold">Hari</th>
-                            <th className="px-3 py-2 text-left font-semibold">Status</th>
+                            <th scope="col" className="px-3 py-2 font-semibold">Jenis</th>
+                            <th scope="col" className="px-3 py-2 font-semibold">Tanggal</th>
+                            <th scope="col" className="px-3 py-2 font-semibold">Hari</th>
+                            <th scope="col" className="px-3 py-2 font-semibold">Status</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-border/60">
                           {detail.pengajuan.length === 0 && (
                             <tr>
-                              <td colSpan={4} className="px-3 py-5 text-center text-slate-400">
+                              <td colSpan={4} className="px-3 py-5 text-center text-[11px] text-muted-foreground">
                                 Belum ada pengajuan.
                               </td>
                             </tr>
                           )}
                           {detail.pengajuan.map((p) => (
-                            <tr key={p.id}>
+                            <tr key={p.id} className="transition-colors duration-150 hover:bg-muted/40">
                               <td className="px-3 py-2 capitalize">{p.jenis.replace('_', ' ')}</td>
-                              <td className="px-3 py-2">
+                              <td className="px-3 py-2 text-muted-foreground">
                                 {formatDate(p.tanggal_mulai)} – {formatDate(p.tanggal_selesai)}
                               </td>
-                              <td className="px-3 py-2">{p.jumlah_hari}</td>
+                              <td className="px-3 py-2 tabular-nums">{p.jumlah_hari}</td>
                               <td className="px-3 py-2">
-                                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
+                                  <span
+                                    aria-hidden="true"
+                                    className={`size-1.5 rounded-full ${statusDotClass(p.status)}`}
+                                  />
                                   {statusPengajuanLabel(p.status)}
                                 </span>
                               </td>
@@ -1047,34 +1323,43 @@ export default function KaryawanClient({
                   </section>
 
                   <section>
-                    <h4 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
-                      <Briefcase className="w-4 h-4 text-indigo-500" />
+                    <h3 className="mb-2 flex items-center gap-1.5 font-heading text-xs font-semibold tracking-tight text-foreground">
+                      <Briefcase aria-hidden="true" className="size-3.5 text-primary" strokeWidth={1.75} />
                       Absensi Terbaru
-                    </h4>
-                    <div className="rounded-xl border border-slate-200 overflow-hidden">
-                      <table className="w-full text-xs">
-                        <thead className="bg-slate-50 text-slate-500">
+                    </h3>
+                    <div className="overflow-x-auto rounded-xl border border-border/70">
+                      <table className="w-full min-w-[420px] text-left text-xs">
+                        <caption className="sr-only">Absensi terbaru karyawan</caption>
+                        <thead className="border-b border-border/70 bg-muted/20 text-[10px] tracking-[0.08em] text-muted-foreground uppercase">
                           <tr>
-                            <th className="px-3 py-2 text-left font-semibold">Tanggal</th>
-                            <th className="px-3 py-2 text-left font-semibold">Masuk</th>
-                            <th className="px-3 py-2 text-left font-semibold">Pulang</th>
-                            <th className="px-3 py-2 text-left font-semibold">Status</th>
+                            <th scope="col" className="px-3 py-2 font-semibold">Tanggal</th>
+                            <th scope="col" className="px-3 py-2 font-semibold">Masuk</th>
+                            <th scope="col" className="px-3 py-2 font-semibold">Pulang</th>
+                            <th scope="col" className="px-3 py-2 font-semibold">Status</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-border/60">
                           {detail.absensi.length === 0 && (
                             <tr>
-                              <td colSpan={4} className="px-3 py-5 text-center text-slate-400">
+                              <td colSpan={4} className="px-3 py-5 text-center text-[11px] text-muted-foreground">
                                 Belum ada data absensi.
                               </td>
                             </tr>
                           )}
                           {detail.absensi.map((a) => (
-                            <tr key={a.id}>
-                              <td className="px-3 py-2">{formatDate(a.tanggal)}</td>
-                              <td className="px-3 py-2">{a.jam_masuk ?? '-'}</td>
-                              <td className="px-3 py-2">{a.jam_pulang ?? '-'}</td>
-                              <td className="px-3 py-2 capitalize">{a.status}</td>
+                            <tr key={a.id} className="transition-colors duration-150 hover:bg-muted/40">
+                              <td className="px-3 py-2 text-muted-foreground">{formatDate(a.tanggal)}</td>
+                              <td className="px-3 py-2 tabular-nums">{a.jam_masuk ?? '-'}</td>
+                              <td className="px-3 py-2 tabular-nums">{a.jam_pulang ?? '-'}</td>
+                              <td className="px-3 py-2">
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
+                                  <span
+                                    aria-hidden="true"
+                                    className={`size-1.5 rounded-full ${statusDotClass(a.status)}`}
+                                  />
+                                  <span className="capitalize">{a.status}</span>
+                                </span>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -1082,7 +1367,7 @@ export default function KaryawanClient({
                     </div>
                   </section>
 
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-muted-foreground">
                     Terakhir diperbarui: {formatDateTime(detail.pengajuan[0]?.dibuat_pada ?? null)}
                   </p>
                 </>
@@ -1095,16 +1380,18 @@ export default function KaryawanClient({
       {/* Toast */}
       {toast && (
         <div
-          className={`fixed bottom-5 right-5 z-[60] flex items-start gap-2 rounded-xl border px-4 py-3 text-sm shadow-lg max-w-sm ${
+          role="status"
+          aria-live="polite"
+          className={`fixed right-4 bottom-4 z-[60] flex max-w-sm items-start gap-2 rounded-xl border px-4 py-3 text-xs shadow-lg ${
             toast.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : 'bg-rose-50 border-rose-200 text-rose-800'
+              ? 'border-primary/25 bg-primary/10 text-primary'
+              : 'border-destructive/25 bg-destructive/10 text-destructive'
           }`}
         >
           {toast.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+            <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
           ) : (
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
           )}
           <span>{toast.text}</span>
         </div>
@@ -1113,64 +1400,41 @@ export default function KaryawanClient({
   );
 }
 
-function Field({
-  label,
-  icon,
-  children,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function RolePill({ peran }: { peran: EmployeeItem['peran'] }) {
   return (
-    <label className="block">
-      <span className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-        {icon}
-        {label}
-      </span>
-      {children}
-    </label>
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${roleClass[peran]}`}
+    >
+      {roleLabel[peran]}
+    </span>
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  tone: 'slate' | 'emerald' | 'rose' | 'amber';
-}) {
-  const toneClass: Record<typeof tone, string> = {
-    slate: 'bg-slate-100 text-slate-600',
-    emerald: 'bg-emerald-100 text-emerald-600',
-    rose: 'bg-rose-100 text-rose-600',
-    amber: 'bg-amber-100 text-amber-600',
-  };
-
+function ActivePill({ active }: { active: boolean }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">{label}</div>
-          <div className="mt-1 text-2xl font-bold text-slate-900">{value}</div>
-        </div>
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${toneClass[tone]}`}>
-          {icon}
-        </div>
-      </div>
-    </div>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
+        active
+          ? 'border-primary/25 bg-primary/10 text-primary'
+          : 'border-destructive/25 bg-destructive/10 text-destructive'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`size-1.5 rounded-full ${active ? 'bg-primary' : 'bg-destructive'}`}
+      />
+      {active ? 'Aktif' : 'Nonaktif'}
+    </span>
   );
 }
 
 function InfoBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
-      <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-slate-900">{value}</div>
+    <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+      <div className="text-[10px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+        {label}
+      </div>
+      <div className="mt-1 text-sm font-semibold text-foreground tabular-nums">{value}</div>
     </div>
   );
 }

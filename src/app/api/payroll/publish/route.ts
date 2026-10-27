@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getAuthUser } from '@/utils/auth';
+import { notifyEmployeePayslipPublished } from '@/utils/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
  * - Mengunci slip (status: 'terbit'). Slip yang sudah terbit TIDAK BISA diedit atau dihapus lagi oleh siapa pun.
  * - Buat nomor slip otomatis dengan format: 'SG-TTTTBB-NNN' (contoh: SG-202610-001, SG-202610-002), nomor urut berurutan per periode dan dijamin unik.
  * - Mencatat ke 'audit_log' dengan aksi 'penerbitan_slip'.
+ * - Notifikasi email transaksional ke karyawan (PRD Bab 11 & BR-11: TANPA NOMINAL GAJI).
  */
 export async function POST(req: NextRequest) {
   try {
@@ -73,6 +75,29 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 4. Kirim Notifikasi Email Transaksional ke Karyawan (PRD Bab 11 & BR-11)
+    // Sesuai aturan kerahasiaan BR-11, email hanya berisi nomor slip dan tautan, TANPA NOMINAL GAJI.
+    (async () => {
+      try {
+        const { data: employeeProfile } = await supabase
+          .from('profiles')
+          .select('email, nama_lengkap')
+          .eq('id', publishedSlip.karyawan_id)
+          .maybeSingle();
+
+        if (employeeProfile?.email) {
+          await notifyEmployeePayslipPublished({
+            employeeEmail: employeeProfile.email,
+            employeeNama: employeeProfile.nama_lengkap,
+            periode: publishedSlip.periode,
+            nomorSlip: publishedSlip.nomor_slip,
+          });
+        }
+      } catch (emailErr) {
+        console.warn('[EMAIL NOTIFICATION PAYSLIP DISPATCH FAILED]', emailErr);
+      }
+    })();
 
     return NextResponse.json({
       success: true,

@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import { getAuthUser } from '@/utils/auth';
 import { getServerTimeWIB } from '@/utils/time';
 import { calculateWorkingDaysWithDB } from '@/utils/workingDays';
+import { notifyAtasanNewLeaveRequest, notifyHrdFinalLeaveDecision } from '@/utils/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -289,6 +290,57 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // 9. Kirim Notifikasi Email Transaksional (PRD Bab 11)
+    // Non-blocking & kegagalan email tidak membatalkan pengajuan utama
+    (async () => {
+      try {
+        if (perluAtasan && profile.divisi_id) {
+          // Ambil profil atasan manajer divisi pemohon
+          const { data: divisiInfo } = await supabase
+            .from('divisi')
+            .select('manajer:manajer_id(id, email, nama_lengkap)')
+            .eq('id', profile.divisi_id)
+            .maybeSingle();
+
+          const atasanData = (divisiInfo as any)?.manajer;
+          if (atasanData?.email) {
+            await notifyAtasanNewLeaveRequest({
+              atasanEmail: atasanData.email,
+              atasanNama: atasanData.nama_lengkap,
+              pemohonNama: profile.nama_lengkap,
+              jenis,
+              tanggalMulai: tanggal_mulai,
+              tanggalSelesai: tanggal_selesai,
+              jumlahHari,
+              alasan: trimmedAlasan,
+            });
+          }
+        } else {
+          // Tahap 1 dilewati -> langsung ke HRD untuk keputusan akhir
+          const { data: hrdList } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('peran', 'hrd')
+            .eq('aktif', true);
+
+          const hrdEmails = (hrdList || []).map((h) => h.email).filter(Boolean);
+          if (hrdEmails.length > 0) {
+            await notifyHrdFinalLeaveDecision({
+              hrdEmails,
+              pemohonNama: profile.nama_lengkap,
+              jenis,
+              tanggalMulai: tanggal_mulai,
+              tanggalSelesai: tanggal_selesai,
+              jumlahHari,
+              alasan: trimmedAlasan,
+            });
+          }
+        }
+      } catch (emailErr) {
+        console.warn('[EMAIL NOTIFICATION DISPATCH FAILED]', emailErr);
+      }
+    })();
 
     return NextResponse.json(
       {
