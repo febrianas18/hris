@@ -166,9 +166,9 @@ export default function LoginPage() {
           <div className="mb-3 flex size-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25">
             <Building2 aria-hidden="true" className="size-7" strokeWidth={2} />
           </div>
-          <h2 className="text-sm font-bold tracking-widest text-primary uppercase">
+          <h1 className="text-sm font-bold tracking-widest text-primary uppercase">
             PT Karsa Lintas Nusantara
-          </h2>
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Sistem Informasi SDM & Kepegawaian Terpadu
           </p>
