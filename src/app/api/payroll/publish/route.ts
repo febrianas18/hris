@@ -76,28 +76,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Kirim Notifikasi Email Transaksional ke Karyawan (PRD Bab 11 & BR-11)
+    // 4. Kirim Notifikasi Email Transaksional & In-App ke Karyawan (PRD Bab 11 & BR-11)
     // Sesuai aturan kerahasiaan BR-11, email hanya berisi nomor slip dan tautan, TANPA NOMINAL GAJI.
-    (async () => {
-      try {
-        const { data: employeeProfile } = await supabase
-          .from('profiles')
-          .select('email, nama_lengkap')
-          .eq('id', publishedSlip.karyawan_id)
-          .maybeSingle();
+    try {
+      const { data: employeeProfile } = await supabase
+        .from('profiles')
+        .select('email, nama_lengkap')
+        .eq('id', publishedSlip.karyawan_id)
+        .maybeSingle();
 
-        if (employeeProfile?.email) {
-          await notifyEmployeePayslipPublished({
-            employeeEmail: employeeProfile.email,
-            employeeNama: employeeProfile.nama_lengkap,
-            periode: publishedSlip.periode,
-            nomorSlip: publishedSlip.nomor_slip,
-          });
-        }
-      } catch (emailErr) {
-        console.warn('[EMAIL NOTIFICATION PAYSLIP DISPATCH FAILED]', emailErr);
+      if (employeeProfile?.email) {
+        await notifyEmployeePayslipPublished({
+          employeeEmail: employeeProfile.email,
+          employeeNama: employeeProfile.nama_lengkap,
+          periode: publishedSlip.periode,
+          nomorSlip: publishedSlip.nomor_slip,
+        });
       }
-    })();
+    } catch (emailErr) {
+      console.warn('[EMAIL NOTIFICATION PAYSLIP DISPATCH FAILED]', emailErr);
+    }
 
     return NextResponse.json({
       success: true,

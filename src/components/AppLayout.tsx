@@ -21,6 +21,7 @@ import { signOutAction } from '@/app/dashboard/actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import NotificationBell from '@/components/NotificationBell';
 
 export interface LayoutProfileData {
   id: string;
@@ -283,7 +284,7 @@ export default function AppLayout({ profile, children }: AppLayoutProps) {
 
       {/* Konten Utama */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile Header (hanya tampil di layar ponsel untuk membuka menu) */}
+        {/* Mobile Header (hanya tampil di layar ponsel) */}
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card px-4 md:hidden">
           <div className="flex items-center gap-2.5">
             <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
@@ -293,21 +294,54 @@ export default function AppLayout({ profile, children }: AppLayoutProps) {
               Karsa<span className="text-primary">HR</span>
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex size-9 items-center justify-center rounded-lg border border-border/70 bg-background text-foreground/80 transition-colors hover:bg-muted hover:text-foreground"
-            aria-label={mobileMenuOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="app-sidebar"
-          >
-            {mobileMenuOpen ? (
-              <X aria-hidden="true" className="size-4" />
-            ) : (
-              <Menu aria-hidden="true" className="size-4" />
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell userRole={role} userEmail={profile.email} />
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex size-9 items-center justify-center rounded-lg border border-border/70 bg-background text-foreground/80 transition-colors hover:bg-muted hover:text-foreground"
+              aria-label={mobileMenuOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="app-sidebar"
+            >
+              {mobileMenuOpen ? (
+                <X aria-hidden="true" className="size-4" />
+              ) : (
+                <Menu aria-hidden="true" className="size-4" />
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Desktop Header Top Bar */}
+        <header className="hidden md:flex h-16 shrink-0 items-center justify-between border-b border-border/70 bg-card/60 backdrop-blur-md px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+              {currentTimeWIB || 'Waktu Server WIB'}
+            </span>
+            <span className="text-border">|</span>
+            <Badge variant={roleBadgeVariant[role]} className="capitalize text-[11px] font-bold">
+              {ROLE_LABEL[role] || role}
+            </Badge>
+            {namaDivisi !== '-' && (
+              <span className="text-xs font-medium text-muted-foreground">
+                Divisi {namaDivisi}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <NotificationBell userRole={role} userEmail={profile.email} />
+            <div className="flex items-center gap-2 pl-2 border-l border-border/70">
+              <span className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                {initials}
+              </span>
+              <span className="text-xs font-bold text-foreground">
+                {profile.nama_lengkap}
+              </span>
+            </div>
+          </div>
+        </header>
 
         {/* Isi halaman */}
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 pb-12 sm:px-6 sm:py-6 lg:px-8 lg:py-8">

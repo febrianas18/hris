@@ -79,27 +79,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: rpcErr.message }, { status: 400 });
     }
 
-    // Notifikasi Email ke Pemohon bahwa pengajuan ditolak (PRD Bab 11)
-    (async () => {
-      try {
-        const pemohon = (pengajuanInfo as any)?.karyawan;
-        if (pemohon?.email && pengajuanInfo) {
-          await notifyPemohonLeaveStatus({
-            pemohonEmail: pemohon.email,
-            pemohonNama: pemohon.nama_lengkap,
-            jenis: pengajuanInfo.jenis,
-            status: 'ditolak',
-            tanggalMulai: pengajuanInfo.tanggal_mulai,
-            tanggalSelesai: pengajuanInfo.tanggal_selesai,
-            jumlahHari: pengajuanInfo.jumlah_hari,
-            alasanPenolakan: trimmedAlasan,
-            diprosesOlehNama: profile.nama_lengkap || 'Atasan / HRD',
-          });
-        }
-      } catch (emailErr) {
-        console.warn('[EMAIL NOTIFICATION REJECT DISPATCH FAILED]', emailErr);
+    // Notifikasi Email & In-App ke Pemohon bahwa pengajuan ditolak (PRD Bab 11)
+    try {
+      const rawPemohon = (pengajuanInfo as any)?.karyawan;
+      const pemohon = Array.isArray(rawPemohon) ? rawPemohon[0] : rawPemohon;
+      if (pemohon?.email && pengajuanInfo) {
+        await notifyPemohonLeaveStatus({
+          pemohonEmail: pemohon.email,
+          pemohonNama: pemohon.nama_lengkap,
+          jenis: pengajuanInfo.jenis,
+          status: 'ditolak',
+          tanggalMulai: pengajuanInfo.tanggal_mulai,
+          tanggalSelesai: pengajuanInfo.tanggal_selesai,
+          jumlahHari: pengajuanInfo.jumlah_hari,
+          alasanPenolakan: trimmedAlasan,
+          diprosesOlehNama: profile.nama_lengkap || 'Atasan / HRD',
+        });
       }
-    })();
+    } catch (emailErr) {
+      console.warn('[EMAIL NOTIFICATION REJECT DISPATCH FAILED]', emailErr);
+    }
 
     return NextResponse.json({
       success: true,

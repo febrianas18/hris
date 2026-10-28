@@ -12,6 +12,8 @@
  * - Pengiriman email bersifat non-blocking dengan penanganan fallback log.
  */
 
+import { addAppNotification } from './notifications';
+
 export interface EmailPayload {
   to: string | string[];
   subject: string;
@@ -232,6 +234,19 @@ export async function notifyAtasanNewLeaveRequest({
     actionUrl: `${appUrl}/persetujuan`,
   });
 
+  // Catat ke In-App Notification Center
+  addAppNotification({
+    recipientEmail: atasanEmail,
+    targetRole: 'atasan',
+    title: `Pengajuan ${jenisText} Baru`,
+    message: `${pemohonNama} mengajukan ${jenisText} (${jumlahHari} hari kerja)`,
+    type: 'leave_request',
+    link: '/persetujuan',
+    emailSubject: subject,
+    emailHtml: html,
+    channel: 'both',
+  });
+
   return sendTransactionalEmail({ to: atasanEmail, subject, html, text });
 }
 
@@ -291,6 +306,18 @@ export async function notifyHrdFinalLeaveDecision({
     bodyHtml,
     actionText: 'Proses Keputusan HRD',
     actionUrl: `${appUrl}/persetujuan`,
+  });
+
+  // Catat ke In-App Notification Center
+  addAppNotification({
+    targetRole: 'hrd',
+    title: `Keputusan Akhir: ${pemohonNama}`,
+    message: `Pengajuan ${jenisText} (${jumlahHari} hari kerja) menunggu keputusan akhir HRD`,
+    type: 'leave_request',
+    link: '/persetujuan',
+    emailSubject: subject,
+    emailHtml: html,
+    channel: 'both',
   });
 
   return sendTransactionalEmail({ to: hrdEmails, subject, html, text });
@@ -375,6 +402,19 @@ export async function notifyPemohonLeaveStatus({
     actionUrl: `${appUrl}/cuti-izin`,
   });
 
+  // Catat ke In-App Notification Center
+  addAppNotification({
+    recipientEmail: pemohonEmail,
+    targetRole: 'karyawan',
+    title,
+    message: `Pengajuan ${jenisText} (${jumlahHari} hari kerja) telah ${status} oleh ${diprosesOlehNama}.`,
+    type: status === 'disetujui' ? 'leave_approved' : status === 'ditolak' ? 'leave_rejected' : 'leave_cancelled',
+    link: '/cuti-izin',
+    emailSubject: subject,
+    emailHtml: html,
+    channel: 'both',
+  });
+
   return sendTransactionalEmail({ to: pemohonEmail, subject, html, text });
 }
 
@@ -421,6 +461,19 @@ export async function notifyEmployeePayslipPublished({
     bodyHtml,
     actionText: 'Buka Slip Gaji Saya',
     actionUrl: `${appUrl}/slip-gaji`,
+  });
+
+  // Catat ke In-App Notification Center
+  addAppNotification({
+    recipientEmail: employeeEmail,
+    targetRole: 'karyawan',
+    title: `Slip Gaji Periode ${periode} Telah Terbit`,
+    message: `Slip gaji resmi nomor ${nomorSlip} telah diterbitkan dan dapat diunduh.`,
+    type: 'payslip',
+    link: '/slip-gaji',
+    emailSubject: subject,
+    emailHtml: html,
+    channel: 'both',
   });
 
   return sendTransactionalEmail({ to: employeeEmail, subject, html, text });

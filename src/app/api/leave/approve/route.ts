@@ -124,32 +124,32 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: rpcErr.message }, { status: 400 });
       }
 
-      // Notifikasi Email ke HRD bahwa pengajuan menunggu keputusan akhir (PRD Bab 11)
-      (async () => {
-        try {
-          const { data: hrdList } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('peran', 'hrd')
-            .eq('aktif', true);
+      // Notifikasi Email & In-App ke HRD bahwa pengajuan menunggu keputusan akhir (PRD Bab 11)
+      try {
+        const { data: hrdList } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('peran', 'hrd')
+          .eq('aktif', true);
 
-          const hrdEmails = (hrdList || []).map((h) => h.email).filter(Boolean);
-          if (hrdEmails.length > 0) {
-            await notifyHrdFinalLeaveDecision({
-              hrdEmails,
-              pemohonNama: (pengajuan.pemohon as any)?.nama_lengkap || 'Karyawan',
-              jenis: pengajuan.jenis,
-              tanggalMulai: pengajuan.tanggal_mulai,
-              tanggalSelesai: pengajuan.tanggal_selesai,
-              jumlahHari: pengajuan.jumlah_hari,
-              alasan: pengajuan.alasan,
-              disetujuiAtasanOleh: profile.nama_lengkap,
-            });
-          }
-        } catch (emailErr) {
-          console.warn('[EMAIL NOTIFICATION HRD DISPATCH FAILED]', emailErr);
+        const hrdEmails = (hrdList || []).map((h) => h.email).filter(Boolean);
+        if (hrdEmails.length > 0) {
+          const rawPemohon = pengajuan.pemohon as any;
+          const pemohonProfile = Array.isArray(rawPemohon) ? rawPemohon[0] : rawPemohon;
+          await notifyHrdFinalLeaveDecision({
+            hrdEmails,
+            pemohonNama: pemohonProfile?.nama_lengkap || 'Karyawan',
+            jenis: pengajuan.jenis,
+            tanggalMulai: pengajuan.tanggal_mulai,
+            tanggalSelesai: pengajuan.tanggal_selesai,
+            jumlahHari: pengajuan.jumlah_hari,
+            alasan: pengajuan.alasan,
+            disetujuiAtasanOleh: profile.nama_lengkap,
+          });
         }
-      })();
+      } catch (emailErr) {
+        console.warn('[EMAIL NOTIFICATION HRD DISPATCH FAILED]', emailErr);
+      }
 
       return NextResponse.json({
         success: true,
@@ -182,31 +182,29 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: rpcErr.message }, { status: 400 });
       }
 
-      // Notifikasi Email ke Pemohon bahwa pengajuan disetujui HRD (PRD Bab 11)
-      (async () => {
-        try {
-          const { data: pemohonProfile } = await supabase
-            .from('profiles')
-            .select('email, nama_lengkap')
-            .eq('id', pengajuan.karyawan_id)
-            .maybeSingle();
+      // Notifikasi Email & In-App ke Pemohon bahwa pengajuan disetujui HRD (PRD Bab 11)
+      try {
+        const { data: pemohonProfile } = await supabase
+          .from('profiles')
+          .select('email, nama_lengkap')
+          .eq('id', pengajuan.karyawan_id)
+          .maybeSingle();
 
-          if (pemohonProfile?.email) {
-            await notifyPemohonLeaveStatus({
-              pemohonEmail: pemohonProfile.email,
-              pemohonNama: pemohonProfile.nama_lengkap,
-              jenis: pengajuan.jenis,
-              status: 'disetujui',
-              tanggalMulai: pengajuan.tanggal_mulai,
-              tanggalSelesai: pengajuan.tanggal_selesai,
-              jumlahHari: pengajuan.jumlah_hari,
-              diprosesOlehNama: profile.nama_lengkap,
-            });
-          }
-        } catch (emailErr) {
-          console.warn('[EMAIL NOTIFICATION PEMOHON DISPATCH FAILED]', emailErr);
+        if (pemohonProfile?.email) {
+          await notifyPemohonLeaveStatus({
+            pemohonEmail: pemohonProfile.email,
+            pemohonNama: pemohonProfile.nama_lengkap,
+            jenis: pengajuan.jenis,
+            status: 'disetujui',
+            tanggalMulai: pengajuan.tanggal_mulai,
+            tanggalSelesai: pengajuan.tanggal_selesai,
+            jumlahHari: pengajuan.jumlah_hari,
+            diprosesOlehNama: profile.nama_lengkap,
+          });
         }
-      })();
+      } catch (emailErr) {
+        console.warn('[EMAIL NOTIFICATION PEMOHON DISPATCH FAILED]', emailErr);
+      }
 
       return NextResponse.json({
         success: true,

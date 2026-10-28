@@ -68,27 +68,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: rpcErr.message }, { status: 400 });
     }
 
-    // Notifikasi Email ke Pemohon jika dibatalkan oleh HRD (PRD Bab 11)
-    (async () => {
-      try {
-        const pemohon = (pengajuanInfo as any)?.karyawan;
-        // Hanya kirim notifikasi jika dibatalkan oleh HRD (bukan dibatalkan oleh pemohon sendiri)
-        if (profile.peran === 'hrd' && pengajuanInfo?.karyawan_id !== user.id && pemohon?.email && pengajuanInfo) {
-          await notifyPemohonLeaveStatus({
-            pemohonEmail: pemohon.email,
-            pemohonNama: pemohon.nama_lengkap,
-            jenis: pengajuanInfo.jenis,
-            status: 'dibatalkan',
-            tanggalMulai: pengajuanInfo.tanggal_mulai,
-            tanggalSelesai: pengajuanInfo.tanggal_selesai,
-            jumlahHari: pengajuanInfo.jumlah_hari,
-            diprosesOlehNama: profile.nama_lengkap || 'Tim HRD',
-          });
-        }
-      } catch (emailErr) {
-        console.warn('[EMAIL NOTIFICATION CANCEL DISPATCH FAILED]', emailErr);
+    // Notifikasi Email & In-App ke Pemohon jika dibatalkan oleh HRD (PRD Bab 11)
+    try {
+      const rawPemohon = (pengajuanInfo as any)?.karyawan;
+      const pemohon = Array.isArray(rawPemohon) ? rawPemohon[0] : rawPemohon;
+      // Hanya kirim notifikasi jika dibatalkan oleh HRD (bukan dibatalkan oleh pemohon sendiri)
+      if (profile.peran === 'hrd' && pengajuanInfo?.karyawan_id !== user.id && pemohon?.email && pengajuanInfo) {
+        await notifyPemohonLeaveStatus({
+          pemohonEmail: pemohon.email,
+          pemohonNama: pemohon.nama_lengkap,
+          jenis: pengajuanInfo.jenis,
+          status: 'dibatalkan',
+          tanggalMulai: pengajuanInfo.tanggal_mulai,
+          tanggalSelesai: pengajuanInfo.tanggal_selesai,
+          jumlahHari: pengajuanInfo.jumlah_hari,
+          diprosesOlehNama: profile.nama_lengkap || 'Tim HRD',
+        });
       }
-    })();
+    } catch (emailErr) {
+      console.warn('[EMAIL NOTIFICATION CANCEL DISPATCH FAILED]', emailErr);
+    }
 
     return NextResponse.json({
       success: true,
