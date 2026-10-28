@@ -58,31 +58,7 @@ function getInitials(name: string) {
 export default function AppLayout({ profile, children }: AppLayoutProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentTimeWIB, setCurrentTimeWIB] = useState<string>('');
-
   const role = profile.peran;
-
-  // Format jam server WIB (Asia/Jakarta) dinamis
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const formatted = new Intl.DateTimeFormat('id-ID', {
-        timeZone: 'Asia/Jakarta',
-        weekday: 'long',
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).format(now);
-      setCurrentTimeWIB(`${formatted} WIB`);
-    };
-
-    updateTime();
-    const interval = setInterval(updateTime, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Menu Navigasi Dinamis Berdasarkan Hak Akses Peran (PRD Section 3 & 7)
   const navItems = [
@@ -285,7 +261,7 @@ export default function AppLayout({ profile, children }: AppLayoutProps) {
       {/* Konten Utama */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile Header (hanya tampil di layar ponsel) */}
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card px-4 md:hidden">
+        <div className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card px-4 md:hidden">
           <div className="flex items-center gap-2.5">
             <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
               <Building2 aria-hidden="true" className="size-4" strokeWidth={2} />
@@ -314,17 +290,13 @@ export default function AppLayout({ profile, children }: AppLayoutProps) {
         </div>
 
         {/* Desktop Header Top Bar */}
-        <header className="hidden md:flex h-16 shrink-0 items-center justify-between border-b border-border/70 bg-card/60 backdrop-blur-md px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-muted-foreground tabular-nums">
-              {currentTimeWIB || 'Waktu Server WIB'}
-            </span>
-            <span className="text-border">|</span>
+        <header className="relative z-40 hidden md:flex h-16 shrink-0 items-center justify-between border-b border-border/70 bg-card/80 backdrop-blur-md px-6 lg:px-8">
+          <div className="flex items-center gap-2.5">
             <Badge variant={roleBadgeVariant[role]} className="capitalize text-[11px] font-bold">
               {ROLE_LABEL[role] || role}
             </Badge>
             {namaDivisi !== '-' && (
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-semibold text-muted-foreground">
                 Divisi {namaDivisi}
               </span>
             )}

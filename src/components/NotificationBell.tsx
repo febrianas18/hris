@@ -117,7 +117,7 @@ export default function NotificationBell({ userRole, userEmail }: NotificationBe
   };
 
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef}>
+    <div className="relative z-50 inline-block text-left" ref={dropdownRef}>
       {/* Tombol Lonceng Notifikasi */}
       <button
         type="button"
@@ -147,7 +147,7 @@ export default function NotificationBell({ userRole, userEmail }: NotificationBe
 
       {/* Dropdown Panel Notifikasi */}
       {isOpen && (
-        <div className="absolute right-0 z-50 mt-2 w-80 sm:w-96 rounded-2xl border border-border/80 bg-card p-0 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute right-0 z-[60] mt-2 w-80 sm:w-96 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md p-0 shadow-2xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-150">
           {/* Header Panel */}
           <div className="flex items-center justify-between border-b border-border/70 p-3.5">
             <div className="flex items-center gap-2">
